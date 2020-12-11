@@ -1,3 +1,4 @@
+include ':uploader'
 include ':downloader'
 include ':app'
 rootProject.name = "WebDAVClient"
