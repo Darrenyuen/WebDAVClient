@@ -13,8 +13,9 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import com.darrenyuen.downloader.DownloadListener
-import com.darrenyuen.downloader.OkDownloader
+import com.darrenyuen.downloader.ok.DownloadListener
+import com.darrenyuen.downloader.ok.OkDownloader
+import com.github.sardine.SardineFactory
 import java.io.File
 
 
@@ -24,6 +25,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     private lateinit var urlET: EditText
     private lateinit var downloadBtn: Button
+    private lateinit var showDirBtn: Button
 
     private var fileName: String = ""
 
@@ -52,7 +54,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         urlET = findViewById(R.id.urlET)
-        downloadBtn = (findViewById<Button>(R.id.download)).apply { setOnClickListener(this@MainActivity) }
+        downloadBtn = findViewById<Button>(R.id.download).apply { setOnClickListener(this@MainActivity) }
+        showDirBtn = findViewById<Button>(R.id.showDir).apply { setOnClickListener(this@MainActivity) }
     }
 
     override fun onClick(v: View?) {
@@ -76,6 +79,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 } else {
                     fileName = generateFileName()
                     OkDownloader.download(urlET.text.toString(), fileName, downloadListener)
+                }
+            }
+            R.id.showDir -> {
+                SardineFactory.begin("dev", "yuan").list("http://119.29.176.115/webdav/").forEach {
+                    Log.i(TAG, it.path)
                 }
             }
         }
