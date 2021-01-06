@@ -26,6 +26,10 @@ public class DownloadThread implements Callable<Boolean> {
      */
     private String url;
     /**
+     * 目标存储路径
+     */
+    private String fileName;
+    /**
      * 下载开始位置
      */
     private long startPos;
@@ -42,12 +46,13 @@ public class DownloadThread implements Callable<Boolean> {
      */
     private Long contentLength;
 
-    public DownloadThread(String url, long start, Long endPos, Integer partFlag, Long contentLength) {
+    public DownloadThread(String url, String fileName, long start, Long endPos, Integer partFlag, Long contentLength) {
         this.url = url;
         this.startPos = start;
         this.endPos = endPos;
         this.part = partFlag;
         this.contentLength = contentLength;
+        this.fileName = fileName;
     }
 
     @Override
@@ -57,9 +62,10 @@ public class DownloadThread implements Callable<Boolean> {
         }
 
         //文件名
-        String httpFileName = HttpUtils.getHttpFileName(url);
+//        String httpFileName = HttpUtils.getHttpFileName(url);
+        String httpFileName = "";
         if (part != null) {
-            httpFileName = httpFileName + NormalDownloader.FILE_TEMP_SUFFIX + part;
+            httpFileName = fileName + NormalDownloader.FILE_TEMP_SUFFIX + part;
         }
 
         //本地文件大小

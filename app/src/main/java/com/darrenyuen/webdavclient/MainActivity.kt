@@ -1,6 +1,5 @@
 package com.darrenyuen.webdavclient
 
-import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -13,9 +12,11 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import com.darrenyuen.downloader.normal.NormalDownloader
 import com.darrenyuen.downloader.ok.DownloadListener
 import com.darrenyuen.downloader.ok.OkDownloader
 import com.github.sardine.SardineFactory
+import kotlinx.coroutines.*
 import java.io.File
 
 
@@ -28,6 +29,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var showDirBtn: Button
 
     private var fileName: String = ""
+
+    private val job = Job()
+    val scope = CoroutineScope(job)
 
     private val downloadListener = object : DownloadListener {
 
@@ -61,25 +65,33 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     override fun onClick(v: View?) {
         when (v?.id) {
             R.id.download -> {
-                if (Build.VERSION.SDK_INT >= 23) {
-                    val permissions = arrayOf(
-                        Manifest.permission.READ_EXTERNAL_STORAGE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    )
-                    if (!hasPermissions(this, permissions)) {
-                        ActivityCompat.requestPermissions(
-                            this,
-                            permissions,
-                            112
-                        )
-                    } else {
-                        fileName = generateFileName()
-                        OkDownloader.download(urlET.text.toString(), fileName, downloadListener)
+                scope.launch {
+                    withContext(Dispatchers.IO) {
+                        NormalDownloader.download(urlET.text.toString(), generateFileName())
                     }
-                } else {
-                    fileName = generateFileName()
-                    OkDownloader.download(urlET.text.toString(), fileName, downloadListener)
                 }
+//                thread {
+//                    NormalDownloader.download(urlET.text.toString())
+//                }
+//                if (Build.VERSION.SDK_INT >= 23) {
+//                    val permissions = arrayOf(
+//                        Manifest.permission.READ_EXTERNAL_STORAGE,
+//                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+//                    )
+//                    if (!hasPermissions(this, permissions)) {
+//                        ActivityCompat.requestPermissions(
+//                            this,
+//                            permissions,
+//                            112
+//                        )
+//                    } else {
+//                        fileName = generateFileName()
+//                        OkDownloader.download(urlET.text.toString(), fileName, downloadListener)
+//                    }
+//                } else {
+//                    fileName = generateFileName()
+//                    OkDownloader.download(urlET.text.toString(), fileName, downloadListener)
+//                }
             }
             R.id.showDir -> {
                 SardineFactory.begin("dev", "yuan").list("http://119.29.176.115/webdav/").forEach {

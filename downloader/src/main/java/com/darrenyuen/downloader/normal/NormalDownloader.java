@@ -27,8 +27,8 @@ public class NormalDownloader {
     //下载线程池
     private static ExecutorService executor = Executors.newFixedThreadPool(DOWNLOAD_THREAD_NUM);
 
-    public static void download(String url) throws Exception {
-        String fileName = HttpUtils.getHttpFileName(url);
+    public static void download(String url, String fileName) throws Exception {
+//        String fileName = HttpUtils.getHttpFileName(url);
         long localFileSize = FileUtils.getFileContentLength(fileName);
         long httpFileSize = HttpUtils.getHttpFileContentLength(url);
         if (localFileSize >= httpFileSize) {
@@ -41,7 +41,7 @@ public class NormalDownloader {
         } else {
             Log.i(TAG, "开始下载文件");
         }
-        splitDownload(url, futureList);
+        splitDownload(url, futureList, fileName);
         LogThread logThread = new LogThread(httpFileSize);
         Future<Boolean> future = executor.submit(logThread);
         futureList.add(future);
@@ -62,18 +62,18 @@ public class NormalDownloader {
      * @param futureList
      * @throws IOException
      */
-    public static void splitDownload(String url, List<Future<Boolean>> futureList) throws IOException {
+    public static void splitDownload(String url, List<Future<Boolean>> futureList, String fileName) throws IOException {
         long httpFileContentLength = HttpUtils.getHttpFileContentLength(url);
         long size = httpFileContentLength / DOWNLOAD_THREAD_NUM;
         long lastSize = httpFileContentLength - (size * (DOWNLOAD_THREAD_NUM - 1));
-        for (int i = 0; i < DOWNLOAD_THREAD_NUM; i++) {
+        for (int i = 1; i <= DOWNLOAD_THREAD_NUM; i++) {
             long start = i * size;
             Long downloadWindow = (i == DOWNLOAD_THREAD_NUM - 1) ? lastSize : size;
             Long end = start + downloadWindow;
             if (start != 0) {
                 start++;
             }
-            DownloadThread downloadThread = new DownloadThread(url, start, end, i, httpFileContentLength);
+            DownloadThread downloadThread = new DownloadThread(url, fileName, start, end, i, httpFileContentLength);
             Future<Boolean> future = executor.submit(downloadThread);
             futureList.add(future);
         }
