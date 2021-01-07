@@ -1,6 +1,7 @@
 package com.darrenyuen.downloader.ok;
 
-import com.darrenyuen.downloader.ok.DownloadListener;
+import com.darrenyuen.downloader.DownloadListener;
+import com.darrenyuen.downloader.Downloader;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -21,12 +22,12 @@ import okio.Okio;
 /**
  * Create by yuan on 2020/12/10
  */
-public class OkDownloader {
+public class OkDownloader implements Downloader {
 
     private static OkHttpClient client = new OkHttpClient.Builder().build();
     private static DownloadListener mListener;
 
-    public static void download(String url, String destPath, DownloadListener listener) {
+    public void download(String url, String destPath, DownloadListener listener) {
         mListener = listener;
         client.newCall(new Request.Builder().url(url).build()).enqueue(new Callback() {
             @Override

@@ -1,4 +1,4 @@
-package com.darrenyuen.downloader.ok;
+package com.darrenyuen.downloader;
 
 /**
  * Create by yuan on 2020/12/10

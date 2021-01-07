@@ -2,6 +2,9 @@ package com.darrenyuen.downloader.normal;
 
 import android.util.Log;
 
+import com.darrenyuen.downloader.DownloadListener;
+import com.darrenyuen.downloader.Downloader;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -16,7 +19,7 @@ import java.util.concurrent.Future;
 /**
  * Create by yuan on 2021/1/3
  */
-public class NormalDownloader {
+public class NormalDownloader implements Downloader {
 
     private static String TAG = "NormalDownloader";
 
@@ -27,12 +30,14 @@ public class NormalDownloader {
     //下载线程池
     private static ExecutorService executor = Executors.newFixedThreadPool(DOWNLOAD_THREAD_NUM);
 
-    public static void download(String url, String fileName) throws Exception {
+    @Override
+    public void download(String url, String fileName, DownloadListener listener) {
 //        String fileName = HttpUtils.getHttpFileName(url);
         long localFileSize = FileUtils.getFileContentLength(fileName);
         long httpFileSize = HttpUtils.getHttpFileContentLength(url);
         if (localFileSize >= httpFileSize) {
             Log.i(TAG, "文件已存在，不需重复下载");
+            listener.onSuccess();
             return;
         }
         List<Future<Boolean>> futureList = new ArrayList<>();
@@ -41,19 +46,24 @@ public class NormalDownloader {
         } else {
             Log.i(TAG, "开始下载文件");
         }
-        splitDownload(url, futureList, fileName);
-        LogThread logThread = new LogThread(httpFileSize);
-        Future<Boolean> future = executor.submit(logThread);
-        futureList.add(future);
-        //开始下载
-        for (Future<Boolean> booleanFuture : futureList) {
-            booleanFuture.get();
+        try {
+            splitDownload(url, futureList, fileName);
+            LogThread logThread = new LogThread(httpFileSize);
+            Future<Boolean> future = executor.submit(logThread);
+            futureList.add(future);
+            //开始下载
+            for (Future<Boolean> booleanFuture : futureList) {
+                booleanFuture.get();
+            }
+            boolean isMerged = merge(fileName);
+            if (isMerged) {
+                clearTemp(fileName);
+            }
+            listener.onSuccess();
+            Log.i(TAG, "本次下载任务已完成");
+        } catch (Exception e) {
+
         }
-        boolean isMerged = merge(fileName);
-        if (isMerged) {
-            clearTemp(fileName);
-        }
-        Log.i(TAG, "本次下载任务已完成");
     }
 
     /**
@@ -66,7 +76,7 @@ public class NormalDownloader {
         long httpFileContentLength = HttpUtils.getHttpFileContentLength(url);
         long size = httpFileContentLength / DOWNLOAD_THREAD_NUM;
         long lastSize = httpFileContentLength - (size * (DOWNLOAD_THREAD_NUM - 1));
-        for (int i = 1; i <= DOWNLOAD_THREAD_NUM; i++) {
+        for (int i = 0; i < DOWNLOAD_THREAD_NUM; i++) {
             long start = i * size;
             Long downloadWindow = (i == DOWNLOAD_THREAD_NUM - 1) ? lastSize : size;
             Long end = start + downloadWindow;
@@ -83,7 +93,7 @@ public class NormalDownloader {
         byte[] buffer = new byte[1024 * 10];
         int len = -1;
         try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileName, "rw")) {
-            for (int i = 1; i <= DOWNLOAD_THREAD_NUM; i++) {
+            for (int i = 0; i < DOWNLOAD_THREAD_NUM; i++) {
                 try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(fileName + FILE_TEMP_SUFFIX + i))) {
                     while ((len = bis.read(buffer)) != -1) {
                         randomAccessFile.write(buffer, 0, len);
