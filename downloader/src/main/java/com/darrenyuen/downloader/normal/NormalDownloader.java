@@ -72,7 +72,7 @@ public class NormalDownloader implements Downloader {
      * @param futureList
      * @throws IOException
      */
-    public static void splitDownload(String url, List<Future<Boolean>> futureList, String fileName) throws IOException {
+    public void splitDownload(String url, List<Future<Boolean>> futureList, String fileName) throws IOException {
         long httpFileContentLength = HttpUtils.getHttpFileContentLength(url);
         long size = httpFileContentLength / DOWNLOAD_THREAD_NUM;
         long lastSize = httpFileContentLength - (size * (DOWNLOAD_THREAD_NUM - 1));
@@ -89,7 +89,7 @@ public class NormalDownloader implements Downloader {
         }
     }
 
-    public static boolean merge(String fileName) throws IOException {
+    public boolean merge(String fileName) throws IOException {
         byte[] buffer = new byte[1024 * 10];
         int len = -1;
         try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileName, "rw")) {
@@ -108,7 +108,7 @@ public class NormalDownloader implements Downloader {
         return true;
     }
 
-    public static boolean clearTemp(String fileName) {
+    public boolean clearTemp(String fileName) {
         for (int i = 0; i < DOWNLOAD_THREAD_NUM; i++) {
             File file = new File(fileName + FILE_TEMP_SUFFIX + i);
             file.delete();
