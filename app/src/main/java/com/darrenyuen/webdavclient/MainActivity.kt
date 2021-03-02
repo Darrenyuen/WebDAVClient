@@ -66,7 +66,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         setContentView(R.layout.activity_main)
         urlET = findViewById(R.id.urlET)
         downloadBtn = findViewById<Button>(R.id.download).apply { setOnClickListener(this@MainActivity) }
-        showDirBtn = findViewById<Button>(R.id.showDir).apply { setOnClickListener(this@MainActivity) }
+//        showDirBtn = findViewById<Button>(R.id.showDir).apply { setOnClickListener(this@MainActivity) }
         toDirBtn = findViewById<Button>(R.id.toDir).apply { setOnClickListener(this@MainActivity) }
     }
 
@@ -101,12 +101,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     }
                 }
             }
-            R.id.showDir -> {
-                SardineFactory.begin("dev", "yuan").list("http://119.29.176.115/webdav/").forEach {
-                    Log.i(TAG, it.path)
-                }
-//                startActivity(Intent("com.android.camera.action.CROP").apply { setDataAndType(Uri.parse("content://com.miui.gallery.open/raw/%2Fstorage%2Femulated%2F0%2FDCIM%2FCamera%2FIMG_20210122_170637.jpg"), "image/*") })
-            }
+//            R.id.showDir -> {
+//                SardineFactory.begin("dev", "yuan").list("http://119.29.176.115/webdav/").forEach {
+//                    Log.i(TAG, it.path)
+//                }
+////                startActivity(Intent("com.android.camera.action.CROP").apply { setDataAndType(Uri.parse("content://com.miui.gallery.open/raw/%2Fstorage%2Femulated%2F0%2FDCIM%2FCamera%2FIMG_20210122_170637.jpg"), "image/*") })
+//            }
             R.id.toDir -> {
                 startActivity(Intent(this, DirCatalogActivity::class.java))
             }
