@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/takePhoto"
+        android:icon="@drawable/icon_take_photo"
+        android:title="拍照上传"/>
+    <item android:id="@+id/uploadPhoto"
+        android:icon="@drawable/icon_photo"
+        android:title="上传图片"/>
+    <item android:id="@+id/uplodaVideo"
+        android:icon="@drawable/icon_video"
+        android:title="上传视频"/>
+    <item android:id="@+id/uploadSDCardFile"
+        android:icon="@drawable/icon_sd"
+        android:title="从SD卡上传文件"/>
+</menu>

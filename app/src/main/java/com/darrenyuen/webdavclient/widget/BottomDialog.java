@@ -186,8 +186,8 @@ public class BottomDialog extends Dialog {
             return this;
         }
 
-        public void build() {
-            new BottomDialog(context, this).show();
+        public BottomDialog build() {
+            return new BottomDialog(context, this);
         }
 
     }
