@@ -2,6 +2,7 @@ package com.darrenyuen.webdavclient
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -12,8 +13,12 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
+import com.darrenyuen.downloader.normal.FileUtils
+import com.darrenyuen.downloader.normal.NormalDownloader
+import com.darrenyuen.webdavclient.util.FileUtil
 import com.darrenyuen.webdavclient.widget.BottomDialog
 import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
+import java.io.*
 
 /**
  * Create by yuan on 2021/2/28
@@ -47,6 +52,8 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
             holder.iconFileTypeIV.setImageResource(R.drawable.apk)
         } else if (mNode.mChildren[position].mValue.name.contains(".doc")) {
             holder.iconFileTypeIV.setImageResource(R.drawable.word)
+        } else if (mNode.mChildren[position].mValue.name.contains(".jpg")) {
+            holder.iconFileTypeIV.setImageResource(R.drawable.image)
         } else {
             holder.iconFileTypeIV.setImageResource(R.drawable.dir)
 //            holder.fileSizeTV.visibility = View.GONE
@@ -54,12 +61,16 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
         }
         holder.fileNameTV.text = mNode.mChildren[position].mValue.name
         if (fileType == FileType.File) {
-            holder.fileSizeTV.text = mNode.mChildren[position].mValue.size.toString().substring(0, mNode.mChildren[position].mValue.size.toString().indexOf(".") + 2) + "MB"
+            val size = mNode.mChildren[position].mValue.size
+            holder.fileSizeTV.let {
+                when {
+                    size / 1024 == 0L -> it.text = size.toString() + "B"
+                    size / (1024 * 1024) == 0L -> it.text = (size / 1024.0).toString() + "KB"
+                    else -> it.text = (size / (1024.0 * 1024.0)).toString().substring(0, (size / (1024.0 * 1024.0)).toString().indexOf(".") + 2) + "MB"
+                }
+            }
         } else if (fileType == FileType.Dir) holder.fileSizeTV.visibility = View.GONE
         holder.fileTimeTV.text = mNode.mChildren[position].mValue.lastModified.toString().replace("GMT+08:00 ", "")
-        holder.itemView.setOnClickListener {
-            mOnItemClickListener?.onItemClick(mNode.mChildren[position], fileType)
-        }
         holder.moreIV.setOnClickListener {
             mBottomDialog = BottomDialog.Builder(mContext)
                     .title("请选择操作：")
@@ -70,30 +81,70 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
                     .itemSize(18)
                     .onItemClickListener {
                         when (it.id) {
-                            R.id.rename -> webDavOperation(WebDavOperation.Rename, mNode.mChildren[position].mValue.path)
-                            R.id.copy -> webDavOperation(WebDavOperation.Copy, mNode.mChildren[position].mValue.path)
-                            R.id.detail -> webDavOperation(WebDavOperation.Detail, mNode.mChildren[position].mValue.path)
-                            R.id.delete -> webDavOperation(WebDavOperation.Delete, mNode.mChildren[position].mValue.path)
+                            R.id.download -> webDavOperation(WebDavOperation.Download, mNode.mChildren[position].mValue.path, mNode.mChildren[position].mValue.name)
+                            R.id.rename -> webDavOperation(WebDavOperation.Rename, mNode.mChildren[position].mValue.path, mNode.mChildren[position].mValue.name)
+                            R.id.copy -> webDavOperation(WebDavOperation.Copy, mNode.mChildren[position].mValue.path, mNode.mChildren[position].mValue.name)
+                            R.id.detail -> webDavOperation(WebDavOperation.Detail, mNode.mChildren[position].mValue.path, mNode.mChildren[position].mValue.name)
+                            R.id.delete -> {
+                                webDavOperation(WebDavOperation.Delete, mNode.mChildren[position].mValue.path, mNode.mChildren[position].mValue.name)
+                                mNode.mChildren.removeAt(position)
+                            }
                         }
                     }
                     .build()
             mBottomDialog?.show()
         }
+//        val hasSDCard = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)
+//        val path = if (hasSDCard) {
+        val path = mContext.getExternalFilesDir(null).toString() + File.separator + mNode.mChildren[position].mValue.name
+//        } else {
+//            mContext.getEx.toString() + File.separator + mNode.mChildren[position].mValue.name
+//        }
+        if (File(path).isFile && File(path).exists()) {
+            holder.iconDoneIV.visibility = View.VISIBLE
+        }
+        holder.itemView.setOnClickListener {
+            if (File(path).isFile && File(path).exists()) {
+                Log.i(TAG, "file's size is ${File(path).length()}")
+                mContext.startActivity(FileUtil.openFile(path, mContext))
+            }
+//            mOnItemClickListener?.onItemClick(mNode.mChildren[position], fileType)
+        }
     }
 
-    private fun webDavOperation(operation: WebDavOperation, path: String) {
+    private fun webDavOperation(operation: WebDavOperation, path: String, name: String) {
+        val sardine = OkHttpSardine()
+        sardine.setCredentials("dev", "yuan")
         when(operation) {
-//            WebDavOperation.Rename -> {
+            WebDavOperation.Rename -> {
 //                Thread {
-//                    val sardine = OkHttpSardine()
-//                    sardine.setCredentials("dev", "yuan")
 //                    Log.i(TAG, "http://119.29.176.115$path")
-//                    sardine.
+//                    sardine.move("http://119.29.176.115$path", "http://119.29.176.115/66666.jpg")
 //                }.start()
+            }
+            WebDavOperation.Download -> {
+                Thread {
+                    writeToDisk(sardine.get("http://119.29.176.115$path")) {
+//                        "data/data/${mContext.packageName}/$name"
+//                        val hasSDCard = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)
+//                        if (hasSDCard) {
+//                            Environment.getExternalStorageDirectory().toString() + File.separator + name
+//                            Environment.getExternalStorageDirectory().toString() + File.separator + System.currentTimeMillis() + ".jpg"
+//                        } else {
+//                            Environment.getDownloadCacheDirectory().toString() + File.separator + System.currentTimeMillis() + ".jpg"
+                        mContext.getExternalFilesDir(null).toString() + File.separator + name
+//                        }
+                    }
+
+                    runOnUIThread {
+                        Toast.makeText(mContext, "下载完成", Toast.LENGTH_SHORT).show()
+                        mBottomDialog?.dismiss()
+                        notifyDataSetChanged()
+                    }
+                }.start()
+            }
             WebDavOperation.Delete -> {
                 Thread {
-                    val sardine = OkHttpSardine()
-                    sardine.setCredentials("dev", "yuan")
                     sardine.delete("http://119.29.176.115$path")
                     runOnUIThread {
                         Toast.makeText(mContext, "删除成功", Toast.LENGTH_SHORT).show()
@@ -102,6 +153,38 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
                     }
                 }.start()
             }
+        }
+    }
+
+    private fun writeToDisk(inputStream: InputStream, diskPath: () -> String) {
+        Log.i(TAG, "diskPath is ${diskPath.invoke()}")
+//        FileUtils.getFileContentLength(diskPath.invoke())
+//        val destFile = File(diskPath.invoke())
+//        if (!destFile.exists()) destFile.createNewFile()
+//        Log.i(TAG, "name is ${destFile.name} ${destFile.exists()} ${destFile.isFile}")
+//        val fos = FileOutputStream(destFile)
+//        val byte = ByteArray(1024)
+//        var byteCount = 0
+//        var bytesWritten = 0
+//        while ((inputStream.read(byte).also { byteCount = it }) != -1) {
+//            fos.write(byte, bytesWritten, byteCount)
+//            bytesWritten += byteCount
+//        }
+//        inputStream.close()
+//        fos.close()
+        val buffer = ByteArray(1024 * 10)
+        var len = -1
+        try {
+            RandomAccessFile(diskPath.invoke(), "rw").use { randomAccessFile ->
+                    BufferedInputStream(inputStream).use { bis ->
+                        while (bis.read(buffer).also { len = it } != -1) {
+                            randomAccessFile.write(buffer, 0, len)
+                        }
+                    }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e(TAG, e.message ?: "")
         }
     }
 

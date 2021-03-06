@@ -1,14 +1,19 @@
 package com.darrenyuen.webdavclient
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Intent
+import android.graphics.Bitmap
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.darrenyuen.webdavclient.util.ConvertUtil
 import com.darrenyuen.webdavclient.widget.BottomDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
@@ -27,6 +32,10 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
 
     private lateinit var mBottomDialog: BottomDialog
 
+    companion object {
+        const val TAKE_PHOTO = 1
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dir_catalog)
@@ -43,6 +52,12 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
                 .itemSize(18)
                 .onItemClickListener {
                     Toast.makeText(this, it.title, Toast.LENGTH_SHORT).show()
+                    when (it.id) {
+                        R.id.takePhoto -> {
+                            startActivityForResult(Intent(MediaStore.ACTION_IMAGE_CAPTURE), TAKE_PHOTO)
+                            mBottomDialog.dismiss()
+                        }
+                    }
                 }
                 .build()
         getDirRoot()
@@ -66,7 +81,7 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
 //            }
             val dataList: ArrayList<FileBean> = ArrayList()
             sardine.list("http://119.29.176.115/webdav/").forEach {
-                dataList.add(FileBean(it.path, it.name, it.modified, it.contentLength / (1024.0f * 1024)))
+                dataList.add(FileBean(it.path, it.name, it.modified, it.contentLength))
             }
             //generate a file tree
             dataList.forEach { it1 ->
@@ -132,6 +147,25 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
     override fun onClick(v: View?) {
         when(v?.id) {
             R.id.uploadFileBtn -> mBottomDialog.show()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == Activity.RESULT_OK) {
+            Thread {
+                Log.i(TAG, "onActivityResult() >>> ${data?.extras?.get("data")}")
+                data?.extras?.get("data")?.let {
+                    val sardine = OkHttpSardine()
+                    sardine.setCredentials("dev", "yuan")
+                    val url = "http://119.29.176.115/webdav/${System.currentTimeMillis()}.jpg"
+                    sardine.c(url)
+                    sardine.put(url, ConvertUtil.bitmapToInputStream(it as Bitmap))
+                }
+                runOnUiThread{
+                    Toast.makeText(this, "上传成功", Toast.LENGTH_SHORT).show()
+                }
+            }.start()
         }
     }
 }

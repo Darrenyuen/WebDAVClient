@@ -6,6 +6,9 @@ import android.graphics.Canvas
 import android.graphics.PixelFormat
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 
 /**
  * Create by yuan on 2021/3/3
@@ -28,6 +31,12 @@ object ConvertUtil {
 
     fun bitmapToDrawable(bitmap: Bitmap?, context: Context): Drawable? {
         return BitmapDrawable(context.resources, bitmap)
+    }
+
+    fun bitmapToInputStream(bitmap: Bitmap): ByteArray {
+        val baos = ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+        return baos.toByteArray()
     }
 
     fun dpToPx(context: Context, dp: Float): Int {
