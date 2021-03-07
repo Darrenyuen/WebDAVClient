@@ -4,19 +4,24 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import android.util.Log
 import android.view.View
+import android.webkit.MimeTypeMap
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.net.toFile
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.darrenyuen.webdavclient.util.ConvertUtil
 import com.darrenyuen.webdavclient.widget.BottomDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
+import java.io.InputStream
 
 class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
 
@@ -33,7 +38,10 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var mBottomDialog: BottomDialog
 
     companion object {
-        const val TAKE_PHOTO = 1
+        const val TAKE_PHOTO = 0
+        const val UPLOAD_PHOTO = 1
+        const val UPLOAD_VIDEO = 2
+        const val UPLOAD_SD_FILE = 3
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,14 +58,36 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
                 .padding(5)
                 .paddingInItem(10)
                 .itemSize(18)
-                .onItemClickListener {
-                    Toast.makeText(this, it.title, Toast.LENGTH_SHORT).show()
+                .onItemClickListener { it ->
                     when (it.id) {
                         R.id.takePhoto -> {
                             startActivityForResult(Intent(MediaStore.ACTION_IMAGE_CAPTURE), TAKE_PHOTO)
-                            mBottomDialog.dismiss()
+                        }
+                        R.id.uploadPhoto -> {
+                            val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                                addCategory(Intent.CATEGORY_OPENABLE)
+                                type = "image/*"
+                            }
+                            startActivityForResult(intent, UPLOAD_PHOTO)
+                        }
+                        R.id.uploadVideo -> {
+                            val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                                addCategory(Intent.CATEGORY_OPENABLE)
+                                type = "video/*"
+                            }
+                            startActivityForResult(intent, UPLOAD_VIDEO)
+                        }
+                        R.id.uploadSDCardFile -> {
+                            Intent(Intent.ACTION_GET_CONTENT).apply {
+                                addCategory(Intent.CATEGORY_OPENABLE)
+                                type = "*/*"
+                            }.let {  intent ->
+                                startActivityForResult(intent, UPLOAD_SD_FILE)
+                            }
+
                         }
                     }
+                    mBottomDialog.dismiss()
                 }
                 .build()
         getDirRoot()
@@ -153,20 +183,61 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == Activity.RESULT_OK) {
-            Thread {
-                Log.i(TAG, "onActivityResult() >>> ${data?.extras?.get("data")}")
-                data?.extras?.get("data")?.let {
-                    val sardine = OkHttpSardine()
-                    sardine.setCredentials("dev", "yuan")
-                    val url = "http://119.29.176.115/webdav/${System.currentTimeMillis()}.jpg"
-                    sardine.c(url)
-                    sardine.put(url, ConvertUtil.bitmapToInputStream(it as Bitmap))
+            when (requestCode) {
+                TAKE_PHOTO -> {
+                    Log.i(TAG, "onActivityResult() >>> ${data?.extras?.get("data")}")
+                    data?.extras?.get("data")?.let {
+                        upload(ConvertUtil.bitmapToByteArray(it as Bitmap), "${System.currentTimeMillis()}.jpg")
+                    }
                 }
-                runOnUiThread{
-                    Toast.makeText(this, "上传成功", Toast.LENGTH_SHORT).show()
+                UPLOAD_PHOTO -> {
+                    data?.data?.let {
+    //                    val images = arrayOf(MediaStore.Images.Media.DATA)
+    //                    val cursor = this
+    //                    val cursor = this.managedQuery(it, images, null, null, null)
+    //                    val index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+    //                    cursor.moveToFirst()
+    //                    Log.i(TAG, "index is $index, cursor getString is : ${cursor.getString(index)}")
+    //                    uploadBitmap(BitmapFactory.decodeFile(cursor.getString(index)))
+                        this.contentResolver.openInputStream(it)?.let { it1 -> upload(it1.readBytes(), "${System.currentTimeMillis()}.jpg") }
+                    }
                 }
-            }.start()
+                UPLOAD_VIDEO -> {
+                    data?.data?.let {
+                        this.contentResolver.openInputStream(it)?.let { it1 ->
+                            upload(it1.readBytes(), "${System.currentTimeMillis()}.mp4")
+                        }
+                    }
+                }
+                UPLOAD_SD_FILE -> {
+                    data?.data?.let {
+                        this.contentResolver.openInputStream(it)?.let { it1 ->
+                            val cr = contentResolver.query(it, null, null, null, null, null)
+                            val fileName = cr?.let {cursor ->
+                                cursor.moveToFirst()
+                                val displayName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+                                cursor.close()
+                                displayName
+                            }?:"${System.currentTimeMillis()}.${MimeTypeMap.getSingleton().getExtensionFromMimeType(contentResolver.getType(it))}}"
+                            Log.i(TAG, "fileName is : $fileName")
+                            upload(it1.readBytes(), fileName)
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    private fun upload(byteArray: ByteArray, fileName: String) {
+        Thread {
+            val sardine = OkHttpSardine()
+            sardine.setCredentials("dev", "yuan")
+            val url = "http://119.29.176.115/webdav/$fileName"
+            sardine.put(url, byteArray)
+            runOnUiThread{
+                Toast.makeText(this, "上传成功", Toast.LENGTH_SHORT).show()
+            }
+        }.start()
     }
 }
 

@@ -33,7 +33,7 @@ object ConvertUtil {
         return BitmapDrawable(context.resources, bitmap)
     }
 
-    fun bitmapToInputStream(bitmap: Bitmap): ByteArray {
+    fun bitmapToByteArray(bitmap: Bitmap): ByteArray {
         val baos = ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
         return baos.toByteArray()

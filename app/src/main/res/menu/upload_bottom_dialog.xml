@@ -6,7 +6,7 @@
     <item android:id="@+id/uploadPhoto"
         android:icon="@drawable/icon_photo"
         android:title="上传图片"/>
-    <item android:id="@+id/uplodaVideo"
+    <item android:id="@+id/uploadVideo"
         android:icon="@drawable/icon_video"
         android:title="上传视频"/>
     <item android:id="@+id/uploadSDCardFile"
