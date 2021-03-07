@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/viewOnLine"
+        android:icon="@drawable/icon_view"
+        android:title="在线查看"/>
     <item android:id="@+id/download"
         android:icon="@drawable/icon_download"
         android:title="下载"/>

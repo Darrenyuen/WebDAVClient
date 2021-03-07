@@ -2,6 +2,8 @@ package com.darrenyuen.webdavclient
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
@@ -44,20 +46,30 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         Log.i(TAG, mNode.mChildren[position].mValue.path)
         var fileType = FileType.File
-        if (mNode.mChildren[position].mValue.name.contains(".txt")) {
-            holder.iconFileTypeIV.setImageResource(R.drawable.txt)
-        } else if (mNode.mChildren[position].mValue.name.contains(".pdf")) {
-            holder.iconFileTypeIV.setImageResource(R.drawable.pdf)
-        } else if (mNode.mChildren[position].mValue.name.contains(".apk")) {
-            holder.iconFileTypeIV.setImageResource(R.drawable.apk)
-        } else if (mNode.mChildren[position].mValue.name.contains(".doc")) {
-            holder.iconFileTypeIV.setImageResource(R.drawable.word)
-        } else if (mNode.mChildren[position].mValue.name.contains(".jpg")) {
-            holder.iconFileTypeIV.setImageResource(R.drawable.image)
-        } else {
-            holder.iconFileTypeIV.setImageResource(R.drawable.dir)
+        when {
+            mNode.mChildren[position].mValue.name.contains(".txt") -> {
+                holder.iconFileTypeIV.setImageResource(R.drawable.txt)
+            }
+            mNode.mChildren[position].mValue.name.contains(".pdf") -> {
+                holder.iconFileTypeIV.setImageResource(R.drawable.pdf)
+            }
+            mNode.mChildren[position].mValue.name.contains(".apk") -> {
+                holder.iconFileTypeIV.setImageResource(R.drawable.apk)
+            }
+            mNode.mChildren[position].mValue.name.contains(".doc") -> {
+                holder.iconFileTypeIV.setImageResource(R.drawable.word)
+            }
+            mNode.mChildren[position].mValue.name.contains(".jpg") -> {
+                holder.iconFileTypeIV.setImageResource(R.drawable.image)
+            }
+            mNode.mChildren[position].mValue.name.contains(".mp4") -> {
+                holder.iconFileTypeIV.setImageResource(R.drawable.video)
+            }
+            else -> {
+                holder.iconFileTypeIV.setImageResource(R.drawable.dir)
 //            holder.fileSizeTV.visibility = View.GONE
-            fileType = FileType.Dir
+                fileType = FileType.Dir
+            }
         }
         holder.fileNameTV.text = mNode.mChildren[position].mValue.name
         if (fileType == FileType.File) {
@@ -81,6 +93,7 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
                     .itemSize(18)
                     .onItemClickListener {
                         when (it.id) {
+                            R.id.viewOnLine -> viewOnLine("http://119.29.176.115${mNode.mChildren[position].mValue.path}".replace("/webdav", ""))
                             R.id.download -> webDavOperation(WebDavOperation.Download, mNode.mChildren[position].mValue.path, mNode.mChildren[position].mValue.name)
                             R.id.rename -> webDavOperation(WebDavOperation.Rename, mNode.mChildren[position].mValue.path, mNode.mChildren[position].mValue.name)
                             R.id.copy -> webDavOperation(WebDavOperation.Copy, mNode.mChildren[position].mValue.path, mNode.mChildren[position].mValue.name)
@@ -90,6 +103,7 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
                                 mNode.mChildren.removeAt(position)
                             }
                         }
+                        mBottomDialog?.dismiss()
                     }
                     .build()
             mBottomDialog?.show()
@@ -110,6 +124,11 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
             }
 //            mOnItemClickListener?.onItemClick(mNode.mChildren[position], fileType)
         }
+    }
+
+    private fun viewOnLine(url: String) {
+        val uri = Uri.parse(url)
+        mContext.startActivity(Intent(Intent.ACTION_VIEW, uri))
     }
 
     private fun webDavOperation(operation: WebDavOperation, path: String, name: String) {
