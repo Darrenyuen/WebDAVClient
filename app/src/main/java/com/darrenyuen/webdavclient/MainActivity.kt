@@ -19,6 +19,8 @@ import com.darrenyuen.downloader.DownloadListener
 import com.darrenyuen.downloader.DownloaderFactory
 import com.darrenyuen.downloader.DownloaderType
 import com.github.sardine.SardineFactory
+import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragment
 import kotlinx.coroutines.*
 import java.io.File
 
@@ -31,6 +33,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var downloadBtn: Button
     private lateinit var showDirBtn: Button
     private lateinit var toDirBtn: Button
+    private lateinit var toFlutterBtn: Button;
 
     private var fileName: String = ""
 
@@ -68,6 +71,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         downloadBtn = findViewById<Button>(R.id.download).apply { setOnClickListener(this@MainActivity) }
 //        showDirBtn = findViewById<Button>(R.id.showDir).apply { setOnClickListener(this@MainActivity) }
         toDirBtn = findViewById<Button>(R.id.toDir).apply { setOnClickListener(this@MainActivity) }
+        toFlutterBtn = findViewById<Button>(R.id.toFlutter).apply { setOnClickListener(this@MainActivity) }
     }
 
     override fun onClick(v: View?) {
@@ -109,6 +113,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 //            }
             R.id.toDir -> {
                 startActivity(Intent(this, DirCatalogActivity::class.java))
+            }
+            R.id.toFlutter -> {
+//                startActivity(FlutterActivity.createDefaultIntent(this))
+                startActivity(Intent(this, LoginActivity::class.java))
             }
         }
     }
