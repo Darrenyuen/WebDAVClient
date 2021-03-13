@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -6,6 +7,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class LoginPageState extends State<LoginPage> {
+
+  static const nativeChannel = const MethodChannel('com.darrenyuen.webDAVClient/catalog');
 
   // 焦点
   FocusNode _focusNodeUserName = FocusNode();
@@ -185,7 +188,8 @@ class LoginPageState extends State<LoginPage> {
               _formKey.currentState.save();
               // todo 等录接口相关操作
               print("登陆------");
-
+              Map<String, dynamic> result = {'message': 'Back from flutter page >>> login'};
+              nativeChannel.invokeMethod('com.darrenyuen.webDAVClient/catalog', result);
             }
           }),
     );

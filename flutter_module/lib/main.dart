@@ -10,7 +10,8 @@ void main() => runApp(_widgetForRoute(window.defaultRouteName));
 Widget _widgetForRoute(String route) {
   switch (route) {
     case 'login': return LoginPage();
-    default: return MyApp(mInitParams: route);
+    default: return LoginPage();
+    // default: return MyApp(mInitParams: route);
   }
 }
 
