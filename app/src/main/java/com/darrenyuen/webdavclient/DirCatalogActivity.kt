@@ -12,9 +12,12 @@ import android.provider.OpenableColumns
 import android.util.Log
 import android.view.View
 import android.webkit.MimeTypeMap
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.net.toFile
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.darrenyuen.webdavclient.util.ConvertUtil
@@ -27,6 +30,8 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
 
     val TAG = "DirCatalogActivity"
 
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var menuIV: ImageView
     private var currentPath: String = "/"
     private lateinit var pathTV: TextView
     private lateinit var mRecyclerView: RecyclerView
@@ -47,6 +52,12 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dir_catalog)
+        drawerLayout = findViewById(R.id.drawerLayout)
+        menuIV = findViewById<ImageView>(R.id.menuIcon).apply {
+            setOnClickListener {
+                drawerLayout.openDrawer(GravityCompat.START)
+            }
+        }
         pathTV = findViewById(R.id.path)
         mRecyclerView = findViewById(R.id.fileContainer)
         mUploadBtn = findViewById(R.id.uploadFileBtn)

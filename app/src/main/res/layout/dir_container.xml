@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".DirCatalogActivity">
+
+    <include layout="@layout/title_bar"
+        android:id="@+id/titleBarLayout"/>
+
+    <RelativeLayout
+        android:layout_below="@id/titleBarLayout"
+        android:id="@+id/titleLayout"
+        android:layout_width="match_parent"
+        android:layout_height="48dp">
+
+        <TextView
+            android:id="@+id/path"
+            android:layout_margin="5dp"
+            android:layout_centerVertical="true"
+            android:textSize="24sp"
+            android:text="当前路径：/"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+    </RelativeLayout>
+
+    <View
+        android:id="@+id/divider"
+        android:background="#666566"
+        android:layout_below="@id/titleLayout"
+        android:layout_marginVertical="4dp"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:layout_below="@+id/divider"
+        android:id="@+id/fileContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/uploadFileBtn"
+        android:src="@drawable/icon_add"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_margin="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="TODO"
+        android:layout_alignParentEnd="true" />
+
+</RelativeLayout>
