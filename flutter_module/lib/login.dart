@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_module/databaseHelper.dart';
+import 'package:flutter_module/userInfo.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -8,7 +10,8 @@ class LoginPage extends StatefulWidget {
 
 class LoginPageState extends State<LoginPage> {
 
-  static const nativeChannel = const MethodChannel('com.darrenyuen.webDAVClient/catalog');
+  static const nativeChannel =
+      const MethodChannel('com.darrenyuen.webDAVClient/catalog');
 
   // 焦点
   FocusNode _focusNodeUserName = FocusNode();
@@ -189,7 +192,12 @@ class LoginPageState extends State<LoginPage> {
               // todo 等录接口相关操作
               print("登陆------");
               Map<String, dynamic> result = {'message': 'Back from flutter page >>> login'};
-              nativeChannel.invokeMethod('com.darrenyuen.webDAVClient/catalog', result);
+              DatabaseHelper.instance.insert(new UserInfo(_username, _password));
+              DatabaseHelper.instance.queryAllRows().then((value) {
+                print("database size: " + value.length.toString());
+                if (value.length > 1) nativeChannel.invokeMethod('com.darrenyuen.webDAVClient/catalog', result);
+              });
+              DatabaseHelper.instance.clearTable();
             }
           }),
     );

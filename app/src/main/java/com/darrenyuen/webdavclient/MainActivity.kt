@@ -72,6 +72,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 //        showDirBtn = findViewById<Button>(R.id.showDir).apply { setOnClickListener(this@MainActivity) }
         toDirBtn = findViewById<Button>(R.id.toDir).apply { setOnClickListener(this@MainActivity) }
         toFlutterBtn = findViewById<Button>(R.id.toFlutter).apply { setOnClickListener(this@MainActivity) }
+        Thread {
+            Thread.sleep(1000);
+        }.start()
+        startActivity(Intent(this, LoginActivity::class.java))
     }
 
     override fun onClick(v: View?) {

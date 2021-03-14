@@ -47,8 +47,12 @@ class LoginActivity : AppCompatActivity() {
         }
 
         MethodChannel(flutterEngine.dartExecutor, CHANNEL_NATIVE_CATALOG).setMethodCallHandler { call, result ->
+            Log.i(TAG, "msg: ${call.argument<String>("message")}")
             when (call.method) {
-                CHANNEL_NATIVE_CATALOG -> startActivity(Intent(this, DirCatalogActivity::class.java))
+                CHANNEL_NATIVE_CATALOG -> {
+                    startActivity(Intent(this, DirCatalogActivity::class.java))
+                    finish()
+                }
             }
         }
 
