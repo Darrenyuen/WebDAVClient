@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -18,9 +19,6 @@ import androidx.core.app.ActivityCompat
 import com.darrenyuen.downloader.DownloadListener
 import com.darrenyuen.downloader.DownloaderFactory
 import com.darrenyuen.downloader.DownloaderType
-import com.github.sardine.SardineFactory
-import io.flutter.embedding.android.FlutterActivity
-import io.flutter.embedding.android.FlutterFragment
 import kotlinx.coroutines.*
 import java.io.File
 
@@ -33,7 +31,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var downloadBtn: Button
     private lateinit var showDirBtn: Button
     private lateinit var toDirBtn: Button
-    private lateinit var toFlutterBtn: Button;
+    private lateinit var toFlutterBtn: Button
+    private lateinit var toReactNative: Button
+
+    private val OVERLAY_PERMISSION_REQ_CODE = 1
 
     private var fileName: String = ""
 
@@ -52,7 +53,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
         override fun onSuccess() {
             runOnUiThread {
-                Toast.makeText(this@MainActivity, "下载成功，保存路径为：${generateFileName()}", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this@MainActivity,
+                    "下载成功，保存路径为：${generateFileName()}",
+                    Toast.LENGTH_LONG
+                ).show()
                 Log.i(TAG, fileName)
             }
         }
@@ -72,10 +77,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 //        showDirBtn = findViewById<Button>(R.id.showDir).apply { setOnClickListener(this@MainActivity) }
         toDirBtn = findViewById<Button>(R.id.toDir).apply { setOnClickListener(this@MainActivity) }
         toFlutterBtn = findViewById<Button>(R.id.toFlutter).apply { setOnClickListener(this@MainActivity) }
-        Thread {
-            Thread.sleep(1000);
-        }.start()
-        startActivity(Intent(this, LoginActivity::class.java))
+        toReactNative = findViewById<Button>(R.id.toReactNative).apply { setOnClickListener(this@MainActivity) }
+//        Thread {
+//            Thread.sleep(1000);
+//        }.start()
+//        startActivity(Intent(this, LoginActivity::class.java))
     }
 
     override fun onClick(v: View?) {
@@ -95,16 +101,26 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     } else {
                         scope.launch {
                             withContext(Dispatchers.IO) {
-                                val downloader = downloaderFactory.createDownloader(DownloaderType.Normal_downloader)
-                                downloader.download(urlET.text.toString(), generateFileName(), downloadListener)
+                                val downloader =
+                                    downloaderFactory.createDownloader(DownloaderType.Normal_downloader)
+                                downloader.download(
+                                    urlET.text.toString(),
+                                    generateFileName(),
+                                    downloadListener
+                                )
                             }
                         }
                     }
                 } else {
                     scope.launch {
                         withContext(Dispatchers.IO) {
-                            val downloader = downloaderFactory.createDownloader(DownloaderType.Normal_downloader)
-                            downloader.download(urlET.text.toString(), generateFileName(), downloadListener)
+                            val downloader =
+                                downloaderFactory.createDownloader(DownloaderType.Normal_downloader)
+                            downloader.download(
+                                urlET.text.toString(),
+                                generateFileName(),
+                                downloadListener
+                            )
                         }
                     }
                 }
@@ -122,6 +138,18 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 //                startActivity(FlutterActivity.createDefaultIntent(this))
                 startActivity(Intent(this, LoginActivity::class.java))
             }
+            R.id.toReactNative -> {
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//                    if (!Settings.canDrawOverlays(this)) {
+//                        val intent: Intent = Intent(
+//                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+//                            Uri.parse("package:$packageName")
+//                        )
+//                        startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE)
+//                    }
+//                }
+                startActivity(Intent(this, ReactBaseActivity::class.java))
+            }
         }
     }
 
@@ -136,8 +164,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 if (grantResults.isNotEmpty() && grantResults[0] === PackageManager.PERMISSION_GRANTED) {
                     scope.launch {
                         withContext(Dispatchers.IO) {
-                            val downloader = downloaderFactory.createDownloader(DownloaderType.Normal_downloader)
-                            downloader.download(urlET.text.toString(), generateFileName(), downloadListener)
+                            val downloader =
+                                downloaderFactory.createDownloader(DownloaderType.Normal_downloader)
+                            downloader.download(
+                                urlET.text.toString(),
+                                generateFileName(),
+                                downloadListener
+                            )
                         }
                     }
                 } else {
@@ -173,5 +206,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         } else {
             return Environment.getDownloadCacheDirectory().toString() + File.separator + System.currentTimeMillis() + ".jpg"
         }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
     }
 }

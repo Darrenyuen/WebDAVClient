@@ -34,6 +34,13 @@
         android:layout_height="wrap_content"/>
 
     <Button
+        android:id="@+id/toReactNative"
+        android:text="toReactNative"
+        android:textAllCaps="false"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <Button
         android:id="@+id/toDir"
         android:text="toDir"
         android:textAllCaps="false"

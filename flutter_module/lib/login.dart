@@ -195,7 +195,7 @@ class LoginPageState extends State<LoginPage> {
               DatabaseHelper.instance.insert(new UserInfo(_username, _password));
               DatabaseHelper.instance.queryAllRows().then((value) {
                 print("database size: " + value.length.toString());
-                if (value.length > 1) nativeChannel.invokeMethod('com.darrenyuen.webDAVClient/catalog', result);
+                if (value.length > 0) nativeChannel.invokeMethod('com.darrenyuen.webDAVClient/catalog', result);
               });
               DatabaseHelper.instance.clearTable();
             }
