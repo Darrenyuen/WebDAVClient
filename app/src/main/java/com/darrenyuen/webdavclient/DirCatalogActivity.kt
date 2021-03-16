@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.darrenyuen.webdavclient.util.ConvertUtil
 import com.darrenyuen.webdavclient.widget.BottomDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.navigation.NavigationView
 import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
 import java.io.InputStream
 
@@ -31,6 +32,7 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
     val TAG = "DirCatalogActivity"
 
     private lateinit var drawerLayout: DrawerLayout
+    private lateinit var navigationView: NavigationView
     private lateinit var menuIV: ImageView
     private var currentPath: String = "/"
     private lateinit var pathTV: TextView
@@ -53,6 +55,7 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dir_catalog)
         drawerLayout = findViewById(R.id.drawerLayout)
+        navigationView = findViewById(R.id.navigation_container)
         menuIV = findViewById<ImageView>(R.id.menuIcon).apply {
             setOnClickListener {
                 drawerLayout.openDrawer(GravityCompat.START)
@@ -101,7 +104,22 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
                     mBottomDialog.dismiss()
                 }
                 .build()
+        initEvent()
         getDirRoot()
+    }
+
+    private fun initEvent() {
+        navigationView.setNavigationItemSelectedListener {
+            when (it.itemId) {
+                R.id.logout -> {
+                    WebDAVContext.getDBService().clearAllData(this)
+                    startActivity(Intent(this, LoginActivity::class.java))
+                    finish()
+                }
+            }
+            drawerLayout.closeDrawer(GravityCompat.START)
+            true
+        }
     }
 
     private fun getDirRoot() {

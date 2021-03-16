@@ -7,6 +7,7 @@ import android.database.Cursor;
  * Create by yuan on 2021/3/16
  */
 public class DBService {
+
     public UserInfo getUserInfo(Context context) {
         UserInfo userInfo = null;
         Cursor cursor = WebDAVContext.getDatabaseHelper(context).getReadableDatabase()
@@ -20,4 +21,10 @@ public class DBService {
         WebDAVContext.getDatabaseHelper(context).getReadableDatabase().close();
         return userInfo;
     }
+
+    public void clearAllData(Context context) {
+        WebDAVContext.getDatabaseHelper(context).getWritableDatabase().delete("UserInfo", null, null);
+        WebDAVContext.getDatabaseHelper(context).close();
+    }
+
 }

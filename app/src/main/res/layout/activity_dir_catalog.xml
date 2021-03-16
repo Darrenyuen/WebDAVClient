@@ -15,7 +15,8 @@
         android:id="@+id/navigation_container"
         android:layout_gravity="start"
         android:layout_width="wrap_content"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        app:menu="@menu/nav_main"/>
 
 
 </androidx.drawerlayout.widget.DrawerLayout>
