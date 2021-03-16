@@ -82,6 +82,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 //            Thread.sleep(1000);
 //        }.start()
 //        startActivity(Intent(this, LoginActivity::class.java))
+        if (userExist()) {
+            Log.i(TAG, "用户存在")
+        } else Log.i(TAG, "用户不存在")
+
+    }
+
+    private fun userExist(): Boolean {
+        return WebDAVContext.getDBService().getUserInfo(this) != null
     }
 
     override fun onClick(v: View?) {

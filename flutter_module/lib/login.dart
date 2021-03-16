@@ -197,7 +197,7 @@ class LoginPageState extends State<LoginPage> {
                 print("database size: " + value.length.toString());
                 if (value.length > 0) nativeChannel.invokeMethod('com.darrenyuen.webDAVClient/catalog', result);
               });
-              DatabaseHelper.instance.clearTable();
+              // DatabaseHelper.instance.clearTable();
             }
           }),
     );
