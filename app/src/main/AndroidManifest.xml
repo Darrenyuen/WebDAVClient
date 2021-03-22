@@ -21,6 +21,8 @@
         android:theme="@style/Theme.WebDAVClient"
         android:usesCleartextTraffic="true"
         tools:targetApi="n">
+        <activity android:name=".WebviewActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
         <activity
             android:name=".ReactBaseActivity"
             android:label="@string/app_name"
@@ -28,7 +30,8 @@
         <activity android:name="com.facebook.react.devsupport.DevSettingsActivity" />
         <activity android:name=".LoginActivity" />
         <activity android:name=".DirCatalogActivity" />
-        <activity android:name=".MainActivity"
+        <activity
+            android:name=".MainActivity"
             android:theme="@style/AppTheme.Launcher.BG">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

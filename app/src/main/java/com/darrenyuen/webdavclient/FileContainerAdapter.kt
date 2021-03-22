@@ -127,8 +127,14 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
     }
 
     private fun viewOnLine(url: String) {
-        val uri = Uri.parse(url)
-        mContext.startActivity(Intent(Intent.ACTION_VIEW, uri))
+        if (url.contains(".doc") || url.contains(".e")) {
+            val uri = Uri.parse(url)
+            mContext.startActivity(Intent(Intent.ACTION_VIEW, uri))
+        } else {
+            val intent = Intent(mContext, WebviewActivity::class.java)
+            intent.putExtra(WebviewActivity.urlParamKey, url)
+            mContext.startActivity(intent)
+        }
     }
 
     private fun webDavOperation(operation: WebDavOperation, path: String, name: String) {
