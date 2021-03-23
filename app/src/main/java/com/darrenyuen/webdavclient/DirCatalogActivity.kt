@@ -21,13 +21,15 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.darrenyuen.webdavclient.util.ConvertUtil
+import com.darrenyuen.webdavclient.util.FileUtil
 import com.darrenyuen.webdavclient.widget.BottomDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
+import java.io.File
 import java.io.InputStream
 
-class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
+class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialogFragment.Callback {
 
     val TAG = "DirCatalogActivity"
 
@@ -266,6 +268,30 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener {
             runOnUiThread{
                 Toast.makeText(this, "上传成功", Toast.LENGTH_SHORT).show()
             }
+        }.start()
+    }
+
+    override fun onClickForRename(newName: String, oldName: String, path: String) {
+        Thread {
+            Log.i(TAG, "newName is $newName, oldName is $oldName, path is $path")
+            val format = oldName.substring(oldName.indexOf("."))
+            var sardine = OkHttpSardine()
+            sardine.setCredentials("dev", "yuan")
+            val oriUrl = "http://119.29.176.115/webdav/$oldName"
+            val desUrl = "http://119.29.176.115/webdav/$newName$format"
+            if (sardine.exists(desUrl)) {
+                sardine.move(oriUrl, desUrl)
+                runOnUiThread {
+                    Toast.makeText(this, "重命名成功", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                sardine.put(desUrl, byteArrayOf())
+                sardine.move(oriUrl, desUrl)
+                runOnUiThread {
+                    Toast.makeText(this, "重命名成功", Toast.LENGTH_SHORT).show()
+                }
+            }
+            Log.i(TAG, "oriUrl is $oriUrl, desUrl is $desUrl")
         }.start()
     }
 }

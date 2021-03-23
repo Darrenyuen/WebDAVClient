@@ -1,6 +1,8 @@
 package com.darrenyuen.webdavclient
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -14,6 +16,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.darrenyuen.downloader.normal.FileUtils
 import com.darrenyuen.downloader.normal.NormalDownloader
@@ -142,10 +145,13 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
         sardine.setCredentials("dev", "yuan")
         when(operation) {
             WebDavOperation.Rename -> {
+                InputDialogFragment().show((mContext as FragmentActivity).supportFragmentManager, TAG, name, path)
 //                Thread {
 //                    Log.i(TAG, "http://119.29.176.115$path")
 //                    sardine.move("http://119.29.176.115$path", "http://119.29.176.115/66666.jpg")
 //                }.start()
+
+                
             }
             WebDavOperation.Download -> {
                 Thread {
