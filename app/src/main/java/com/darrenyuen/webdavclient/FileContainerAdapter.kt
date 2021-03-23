@@ -1,14 +1,16 @@
 package com.darrenyuen.webdavclient
 
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.app.AlertDialog
+import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.provider.SyncStateContract
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -16,6 +18,10 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.getSystemService
+import androidx.core.graphics.drawable.toIcon
 import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.darrenyuen.downloader.normal.FileUtils
@@ -23,6 +29,7 @@ import com.darrenyuen.downloader.normal.NormalDownloader
 import com.darrenyuen.webdavclient.util.FileUtil
 import com.darrenyuen.webdavclient.widget.BottomDialog
 import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
+import okhttp3.internal.notify
 import java.io.*
 
 /**
@@ -164,6 +171,8 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
 //                        } else {
 //                            Environment.getDownloadCacheDirectory().toString() + File.separator + System.currentTimeMillis() + ".jpg"
                         mContext.getExternalFilesDir(null).toString() + File.separator + name
+//                        mContext.filesDir.toString() + File.separator + name
+//                        Environment.getExternalStorageState() + File.separator + name
 //                        }
                     }
 
@@ -189,6 +198,56 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
 
     private fun writeToDisk(inputStream: InputStream, diskPath: () -> String) {
         Log.i(TAG, "diskPath is ${diskPath.invoke()}")
+
+        val mBuilder = NotificationCompat.Builder(mContext, "").apply {
+            setContentTitle("下载任务")
+            setContentText("下载进度")
+            setSmallIcon(R.drawable.head)
+            priority = NotificationCompat.PRIORITY_DEFAULT
+            setAutoCancel(true)
+        }
+
+        val notificationManager: NotificationManager = mContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = mContext.getString(R.string.app_name)
+            val descriptionText = mContext.getString(R.string.app_name)
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel("", name, importance).apply {
+                description = descriptionText
+            }
+            // Register the channel with the system
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        notificationManager.apply {
+            mBuilder.setProgress(100, 0, false)
+            notify(1, mBuilder.build())
+            for (i in 1..10) {
+                Thread.sleep(500)
+                mBuilder.setProgress(100, 10 * i, false)
+                notify(1, mBuilder.build())
+            }
+            mBuilder.setContentText("下载完成")
+                .setProgress(0, 0, false)
+            notify(1, mBuilder.build())
+        }
+
+        val buffer = ByteArray(1024 * 10)
+        var len = -1
+        try {
+            RandomAccessFile(diskPath.invoke(), "rw").use { randomAccessFile ->
+                BufferedInputStream(inputStream).use { bis ->
+                    while (bis.read(buffer).also { len = it } != -1) {
+                        randomAccessFile.write(buffer, 0, len)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e(TAG, e.message ?: "")
+        }
+
 //        FileUtils.getFileContentLength(diskPath.invoke())
 //        val destFile = File(diskPath.invoke())
 //        if (!destFile.exists()) destFile.createNewFile()
@@ -203,20 +262,6 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
 //        }
 //        inputStream.close()
 //        fos.close()
-        val buffer = ByteArray(1024 * 10)
-        var len = -1
-        try {
-            RandomAccessFile(diskPath.invoke(), "rw").use { randomAccessFile ->
-                    BufferedInputStream(inputStream).use { bis ->
-                        while (bis.read(buffer).also { len = it } != -1) {
-                            randomAccessFile.write(buffer, 0, len)
-                        }
-                    }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Log.e(TAG, e.message ?: "")
-        }
     }
 
     private fun runOnUIThread(action: () -> Unit) {
