@@ -14,6 +14,7 @@
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigation_container"
         android:layout_gravity="start"
+        app:headerLayout="@layout/navigation_head"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         app:menu="@menu/nav_main"/>

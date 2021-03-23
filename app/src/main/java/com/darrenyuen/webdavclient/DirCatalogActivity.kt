@@ -35,6 +35,7 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
 
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var navigationView: NavigationView
+    private lateinit var userNameTV: TextView
     private lateinit var menuIV: ImageView
     private var currentPath: String = "/"
     private lateinit var pathTV: TextView
@@ -58,6 +59,7 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
         setContentView(R.layout.activity_dir_catalog)
         drawerLayout = findViewById(R.id.drawerLayout)
         navigationView = findViewById(R.id.navigation_container)
+        userNameTV = navigationView.getHeaderView(0).findViewById(R.id.userNameTV)
         menuIV = findViewById<ImageView>(R.id.menuIcon).apply {
             setOnClickListener {
                 drawerLayout.openDrawer(GravityCompat.START)
@@ -122,6 +124,7 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
             drawerLayout.closeDrawer(GravityCompat.START)
             true
         }
+        userNameTV.text = WebDAVContext.getDBService().getUserInfo(this).account
     }
 
     private fun getDirRoot() {
