@@ -20,6 +20,8 @@ import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.darrenyuen.guide.GuideView
+import com.darrenyuen.guide.HighLightShape
 import com.darrenyuen.webdavclient.util.ConvertUtil
 import com.darrenyuen.webdavclient.util.FileUtil
 import com.darrenyuen.webdavclient.widget.BottomDialog
@@ -125,6 +127,21 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
             true
         }
         userNameTV.text = WebDAVContext.getDBService().getUserInfo(this).account
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        var guideViewForUploadBtn = GuideView.Builder.newInstance(this)
+            .setTargetView(mUploadBtn)
+            .setShape(HighLightShape.CIRCLE)
+            .setBgColor(resources.getColor(R.color.shadow))
+            .setOnClickListener(object : GuideView.OnClickListener {
+                override fun onClick(guideView: GuideView) {
+                    guideView.hide()
+                }
+            })
+            .build()
+        guideViewForUploadBtn.show()
     }
 
     private fun getDirRoot() {
