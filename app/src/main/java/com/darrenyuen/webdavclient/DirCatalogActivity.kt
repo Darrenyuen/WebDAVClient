@@ -150,7 +150,7 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
 //            Log.i(TAG, it.path)
 //        }
         Thread {
-            val sardine = OkHttpSardine()
+            val sardine = com.darrenyuen.sardine.impl.OkHttpSardine()
             sardine.setCredentials("dev", "yuan")
 //            sardine.list("http://119.29.176.115/webdav/").forEach {
 //                Log.i(TAG, it.path)

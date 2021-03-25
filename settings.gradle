@@ -1,3 +1,4 @@
+include ':sardine'
 include ':guide'
 include ':uploader'
 setBinding(new Binding([gradle: this]))
