@@ -177,6 +177,8 @@ public interface Sardine
 	 */
 	InputStream get(String url, Map<String, String> headers) throws IOException;
 
+	void get(String url, String fileName, DownloadListener listener) throws IOException;
+
 	/**
 	 * Uses HTTP <code>PUT</code> to send data to a server. Repeatable on authentication failure.
 	 *

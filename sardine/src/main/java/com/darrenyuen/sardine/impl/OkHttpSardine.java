@@ -2,12 +2,15 @@ package com.darrenyuen.sardine.impl;
 
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.darrenyuen.sardine.DavAce;
 import com.darrenyuen.sardine.DavAcl;
 import com.darrenyuen.sardine.DavPrincipal;
 import com.darrenyuen.sardine.DavQuota;
 import com.darrenyuen.sardine.DavResource;
+import com.darrenyuen.sardine.DownloadListener;
+import com.darrenyuen.sardine.LogThread;
 import com.darrenyuen.sardine.Sardine;
 import com.darrenyuen.sardine.impl.handler.ExistsResponseHandler;
 import com.darrenyuen.sardine.impl.handler.InputStreamResponseHandler;
@@ -38,18 +41,26 @@ import com.darrenyuen.sardine.model.SearchRequest;
 import com.darrenyuen.sardine.model.Set;
 import com.darrenyuen.sardine.model.Write;
 import com.darrenyuen.sardine.report.SardineReport;
+import com.darrenyuen.sardine.util.FileUtil;
+import com.darrenyuen.sardine.util.OkHttpUtil;
 import com.darrenyuen.sardine.util.SardineUtil;
 
 import org.w3c.dom.Element;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.xml.namespace.QName;
 
@@ -68,7 +79,16 @@ import okhttp3.Response;
 
 public class OkHttpSardine implements Sardine {
 
+    private String TAG = "OkHttpSardine";
+
     private OkHttpClient client;
+
+    //下载线程数量
+    public static int DOWNLOAD_THREAD_NUM = 5;
+    //临时文件后缀
+    public static String FILE_TEMP_SUFFIX = ".temp";
+    //下载线程池
+    private static ExecutorService executor = Executors.newFixedThreadPool(DOWNLOAD_THREAD_NUM);
 
     public OkHttpSardine() {
         this.client = new OkHttpClient.Builder().build();
@@ -283,6 +303,91 @@ public class OkHttpSardine implements Sardine {
                 .build();
 
         return execute(request, new InputStreamResponseHandler());
+    }
+
+    @Override
+    public void get(String url, String fileName, DownloadListener listener) throws IOException {
+        long localFileSize = FileUtil.getFileContentLength(fileName);
+        long httpFileSize = OkHttpUtil.getHttpFileContentLength(url);
+        if (localFileSize >= httpFileSize) {
+            Log.i(TAG, "文件已存在，不需重复下载");
+            listener.onSuccess();
+            return;
+        }
+        List<Future<Boolean>> futureList = new ArrayList<>();
+        if (localFileSize > 0) {
+            Log.i(TAG, "开始断点续传");
+        } else {
+            Log.i(TAG, "开始下载文件");
+        }
+        try {
+            splitDownload(url, futureList, fileName);
+            LogThread logThread = new LogThread(httpFileSize, listener);
+            Future<Boolean> future = executor.submit(logThread);
+            futureList.add(future);
+            //开始下载
+            for (Future<Boolean> booleanFuture : futureList) {
+                booleanFuture.get();
+            }
+            boolean isMerged = merge(fileName);
+            if (isMerged) {
+                clearTemp(fileName);
+            }
+            listener.onSuccess();
+            Log.i(TAG, "本次下载任务已完成");
+        } catch (Exception e) {
+
+        }
+    }
+
+    public boolean merge(String fileName) throws IOException {
+        byte[] buffer = new byte[1024 * 10];
+        int len = -1;
+        try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileName, "rw")) {
+            for (int i = 0; i < DOWNLOAD_THREAD_NUM; i++) {
+                try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(fileName + FILE_TEMP_SUFFIX + i))) {
+                    while ((len = bis.read(buffer)) != -1) {
+                        randomAccessFile.write(buffer, 0, len);
+                    }
+                }
+
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    public boolean clearTemp(String fileName) {
+        for (int i = 0; i < DOWNLOAD_THREAD_NUM; i++) {
+            File file = new File(fileName + FILE_TEMP_SUFFIX + i);
+            file.delete();
+        }
+        return true;
+    }
+
+    /**
+     * 切分下载任务到多个线程
+     * @param url
+     * @param futureList
+     * @throws IOException
+     */
+    public void splitDownload(String url, List<Future<Boolean>> futureList, String fileName) throws IOException {
+        long httpFileContentLength = OkHttpUtil.getHttpFileContentLength(url);
+        long size = httpFileContentLength / DOWNLOAD_THREAD_NUM;
+        long lastSize = httpFileContentLength - (size * (DOWNLOAD_THREAD_NUM - 1));
+        for (int i = 0; i < DOWNLOAD_THREAD_NUM; i++) {
+            long start = i * size;
+            Long downloadWindow = (i == DOWNLOAD_THREAD_NUM - 1) ? lastSize : size;
+            Long end = start + downloadWindow;
+            if (start != 0) {
+                start++;
+            }
+            DownloadThread downloadThread = new DownloadThread(url, fileName, start, end, i, httpFileContentLength);
+            Future<Boolean> future = executor.submit(downloadThread);
+            futureList.add(future);
+        }
     }
 
     @Override
