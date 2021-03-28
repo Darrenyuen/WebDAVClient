@@ -4,32 +4,29 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.util.Log
+import android.view.Gravity
 import android.view.View
 import android.webkit.MimeTypeMap
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.net.toFile
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.darrenyuen.guide.Direction
 import com.darrenyuen.guide.GuideView
 import com.darrenyuen.guide.HighLightShape
 import com.darrenyuen.webdavclient.util.ConvertUtil
-import com.darrenyuen.webdavclient.util.FileUtil
 import com.darrenyuen.webdavclient.widget.BottomDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
-import java.io.File
-import java.io.InputStream
 
 class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialogFragment.Callback {
 
@@ -101,7 +98,7 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
                             Intent(Intent.ACTION_GET_CONTENT).apply {
                                 addCategory(Intent.CATEGORY_OPENABLE)
                                 type = "*/*"
-                            }.let {  intent ->
+                            }.let { intent ->
                                 startActivityForResult(intent, UPLOAD_SD_FILE)
                             }
 
@@ -131,16 +128,26 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        var guideViewForUploadBtn = GuideView.Builder.newInstance(this)
-            .setTargetView(mUploadBtn)
-            .setShape(HighLightShape.CIRCLE)
-            .setBgColor(resources.getColor(R.color.shadow))
-            .setOnClickListener(object : GuideView.OnClickListener {
-                override fun onClick(guideView: GuideView) {
-                    guideView.hide()
-                }
-            })
-            .build()
+
+        // 使用文字
+        val tv = TextView(this)
+        tv.text = "点击这里可以上传文件"
+        tv.setTextColor(resources.getColor(R.color.black))
+        tv.textSize = 20f
+        tv.gravity = Gravity.CENTER
+
+        val guideViewForUploadBtn = GuideView.Builder.newInstance(this)
+                .setTargetView(mUploadBtn)
+                .setShape(HighLightShape.CIRCLE)
+                .setBgColor(resources.getColor(R.color.shadow))
+                .setCustomGuideView(tv)
+                .setDirection(Direction.TOP)
+                .setOnClickListener(object : GuideView.OnClickListener {
+                    override fun onClick(guideView: GuideView) {
+                        guideView.hide()
+                    }
+                })
+                .build()
         guideViewForUploadBtn.show()
     }
 
@@ -243,13 +250,13 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
                 }
                 UPLOAD_PHOTO -> {
                     data?.data?.let {
-    //                    val images = arrayOf(MediaStore.Images.Media.DATA)
-    //                    val cursor = this
-    //                    val cursor = this.managedQuery(it, images, null, null, null)
-    //                    val index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
-    //                    cursor.moveToFirst()
-    //                    Log.i(TAG, "index is $index, cursor getString is : ${cursor.getString(index)}")
-    //                    uploadBitmap(BitmapFactory.decodeFile(cursor.getString(index)))
+                        //                    val images = arrayOf(MediaStore.Images.Media.DATA)
+                        //                    val cursor = this
+                        //                    val cursor = this.managedQuery(it, images, null, null, null)
+                        //                    val index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+                        //                    cursor.moveToFirst()
+                        //                    Log.i(TAG, "index is $index, cursor getString is : ${cursor.getString(index)}")
+                        //                    uploadBitmap(BitmapFactory.decodeFile(cursor.getString(index)))
                         this.contentResolver.openInputStream(it)?.let { it1 -> upload(it1.readBytes(), "${System.currentTimeMillis()}.jpg") }
                     }
                 }
@@ -264,12 +271,13 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
                     data?.data?.let {
                         this.contentResolver.openInputStream(it)?.let { it1 ->
                             val cr = contentResolver.query(it, null, null, null, null, null)
-                            val fileName = cr?.let {cursor ->
+                            val fileName = cr?.let { cursor ->
                                 cursor.moveToFirst()
                                 val displayName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
                                 cursor.close()
                                 displayName
-                            }?:"${System.currentTimeMillis()}.${MimeTypeMap.getSingleton().getExtensionFromMimeType(contentResolver.getType(it))}}"
+                            }
+                                    ?: "${System.currentTimeMillis()}.${MimeTypeMap.getSingleton().getExtensionFromMimeType(contentResolver.getType(it))}}"
                             Log.i(TAG, "fileName is : $fileName")
                             upload(it1.readBytes(), fileName)
                         }

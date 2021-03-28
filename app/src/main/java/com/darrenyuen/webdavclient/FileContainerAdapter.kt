@@ -26,6 +26,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.darrenyuen.downloader.normal.FileUtils
 import com.darrenyuen.downloader.normal.NormalDownloader
+import com.darrenyuen.sardine.DownloadListener
 import com.darrenyuen.webdavclient.util.FileUtil
 import com.darrenyuen.webdavclient.widget.BottomDialog
 import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
@@ -148,7 +149,7 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
     }
 
     private fun webDavOperation(operation: WebDavOperation, path: String, name: String) {
-        val sardine = OkHttpSardine()
+        val sardine = com.darrenyuen.sardine.impl.OkHttpSardine()
         sardine.setCredentials("dev", "yuan")
         when(operation) {
             WebDavOperation.Rename -> {
@@ -162,19 +163,64 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
             }
             WebDavOperation.Download -> {
                 Thread {
-                    writeToDisk(sardine.get("http://119.29.176.115$path")) {
-//                        "data/data/${mContext.packageName}/$name"
-//                        val hasSDCard = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)
-//                        if (hasSDCard) {
-//                            Environment.getExternalStorageDirectory().toString() + File.separator + name
-//                            Environment.getExternalStorageDirectory().toString() + File.separator + System.currentTimeMillis() + ".jpg"
-//                        } else {
-//                            Environment.getDownloadCacheDirectory().toString() + File.separator + System.currentTimeMillis() + ".jpg"
-                        mContext.getExternalFilesDir(null).toString() + File.separator + name
-//                        mContext.filesDir.toString() + File.separator + name
-//                        Environment.getExternalStorageState() + File.separator + name
-//                        }
+                    val mBuilder = NotificationCompat.Builder(mContext, "").apply {
+                        setContentTitle("下载任务")
+                        setContentText("下载进度")
+                        setSmallIcon(R.drawable.head)
+                        priority = NotificationCompat.PRIORITY_DEFAULT
+                        setAutoCancel(true)
                     }
+
+                    val notificationManager: NotificationManager = mContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        val name = mContext.getString(R.string.app_name)
+                        val descriptionText = mContext.getString(R.string.app_name)
+                        val importance = NotificationManager.IMPORTANCE_DEFAULT
+                        val channel = NotificationChannel("", name, importance).apply {
+                            description = descriptionText
+                        }
+                        // Register the channel with the system
+                        notificationManager.createNotificationChannel(channel)
+                    }
+
+                    sardine.get("http://119.29.176.115$path", "/storage/emulated/0/Pictures/weixin" + File.separator + name, object : DownloadListener {
+                        override fun onProgress(progress: Float) {
+                            runOnUIThread {
+                                notificationManager.apply {
+                                    mBuilder.setContentText("下载进度：$progress").setProgress(100, progress.toInt(), false)
+                                    notify(1, mBuilder.build())
+                                }
+                            }
+                        }
+
+                        override fun onSuccess() {
+                            runOnUIThread {
+                                notificationManager.apply {
+                                    mBuilder.setContentText("下载完成")
+                                            .setProgress(0, 0, false)
+                                    notify(1, mBuilder.build())
+                                }
+                            }
+                        }
+
+                        override fun onFailure(errMsg: String?) {
+
+                        }
+                    })
+//                    writeToDisk(sardine.get("http://119.29.176.115$path")) {
+////                        "data/data/${mContext.packageName}/$name"
+////                        val hasSDCard = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)
+////                        if (hasSDCard) {
+////                            Environment.getExternalStorageDirectory().toString() + File.separator + name
+////                            Environment.getExternalStorageDirectory().toString() + File.separator + System.currentTimeMillis() + ".jpg"
+////                        } else {
+////                            Environment.getDownloadCacheDirectory().toString() + File.separator + System.currentTimeMillis() + ".jpg"
+//                        mContext.getExternalFilesDir(null).toString() + File.separator + name
+////                        mContext.filesDir.toString() + File.separator + name
+////                        Environment.getExternalStorageState() + File.separator + name
+////                        }
+//                    }
 
                     runOnUIThread {
                         Toast.makeText(mContext, "下载完成", Toast.LENGTH_SHORT).show()

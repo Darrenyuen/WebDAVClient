@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.graphics.*
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
@@ -140,8 +141,47 @@ class GuideView(val mContext: Context) : RelativeLayout(mContext), ViewTreeObser
         val guideViewParams = LayoutParams(LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         guideViewParams.setMargins(0, center[1] + mRadius + 10, 0, 0)
 
-        mCustomGuideView?.let {
+        val width = this.width
+        val height = this.height
 
+        val left: Int = center[0] - mRadius
+        val right: Int = center[0] + mRadius
+        val top: Int = center[1] - mRadius
+        val bottom: Int = center[1] + mRadius
+        mCustomGuideView?.let {
+            when (mDirection) {
+                Direction.TOP -> {
+                    this.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                    guideViewParams.setMargins(mOffsetX, mOffsetY - height + top, -mOffsetX, height - top - mOffsetY)
+                }
+                Direction.LEFT -> {
+                    this.gravity = Gravity.RIGHT
+                    guideViewParams.setMargins(mOffsetX - width + left, top + mOffsetY, width - left - mOffsetX, -top - mOffsetY)
+                }
+                Direction.BOTTOM -> {
+                    this.gravity = Gravity.CENTER_HORIZONTAL;
+                    guideViewParams.setMargins(mOffsetX, bottom + mOffsetY, -mOffsetX, -bottom - mOffsetY)
+                }
+                Direction.RIGHT -> {
+                    guideViewParams.setMargins(right + mOffsetX, top + mOffsetY, -right - mOffsetX, -top - mOffsetY)
+                }
+                Direction.LEFT_TOP -> {
+                    this.gravity = Gravity.RIGHT
+                    guideViewParams.setMargins(mOffsetX - width + left, mOffsetY - height + top, width - left - mOffsetX, height - top - mOffsetY)
+                }
+                Direction.LEFT_BOTTOM -> {
+                    this.gravity = Gravity.RIGHT
+                    guideViewParams.setMargins(mOffsetX - width + left, bottom + mOffsetY, width - left - mOffsetX, -bottom - mOffsetY)
+                }
+                Direction.RIGHT_TOP -> {
+                    this.gravity = Gravity.BOTTOM
+                    guideViewParams.setMargins(right + mOffsetX, mOffsetY - height + top, -right - mOffsetX, height - top - mOffsetY);
+                }
+                Direction.RIGHT_BOTTOM -> {
+                    guideViewParams.setMargins(right + mOffsetX, bottom + mOffsetY, -right - mOffsetX, -top - mOffsetY)
+                }
+            }
+            this.addView(mCustomGuideView, guideViewParams)
         }
     }
 
@@ -152,7 +192,8 @@ class GuideView(val mContext: Context) : RelativeLayout(mContext), ViewTreeObser
     }
 
     private fun drawBg(canvas: Canvas?) {
-        bitmap = Bitmap.createBitmap(canvas?.width ?: 0, canvas?.height ?: 0, Bitmap.Config.ARGB_8888)
+        bitmap = Bitmap.createBitmap(canvas?.width ?: 0, canvas?.height
+                ?: 0, Bitmap.Config.ARGB_8888)
         mCanvas = Canvas(bitmap!!)
         val bgPaint = Paint()
 
