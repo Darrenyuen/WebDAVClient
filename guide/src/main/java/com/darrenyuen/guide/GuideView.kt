@@ -4,12 +4,14 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.graphics.*
+import android.os.Build
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.RelativeLayout
+import androidx.annotation.RequiresApi
 import kotlin.math.sqrt
 
 /**
@@ -191,6 +193,7 @@ class GuideView(val mContext: Context) : RelativeLayout(mContext), ViewTreeObser
         drawBg(canvas)
     }
 
+//    @RequiresApi(Build.VERSION_CODES.M)
     private fun drawBg(canvas: Canvas?) {
         bitmap = Bitmap.createBitmap(canvas?.width ?: 0, canvas?.height
                 ?: 0, Bitmap.Config.ARGB_8888)
@@ -207,12 +210,13 @@ class GuideView(val mContext: Context) : RelativeLayout(mContext), ViewTreeObser
         porterDuffXfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_OUT)
         mCirclePaint?.xfermode = porterDuffXfermode
         mCirclePaint?.isAntiAlias = true
+        mCirclePaint?.setColor(context.getColor(R.color.white))
 
         mShape?.let {
             val oval = RectF()
             when (mShape) {
                 HighLightShape.CIRCLE -> mCanvas?.drawCircle(center[0].toFloat(), center[1].toFloat(), mRadius.toFloat(), mCirclePaint!!)
-
+                HighLightShape.RECTANGLE -> mCanvas?.drawRect(RectF(center[0].toFloat() - mRadius / 2 - 10, center[1].toFloat() - mRadius / 2 - 10, center[0].toFloat() + mRadius / 2 + 10, center[1].toFloat() + mRadius / 2 + 10), mCirclePaint!!)
                 else -> {}
             }
         }

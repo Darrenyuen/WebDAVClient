@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_module/RouteUtil.dart';
 import 'package:flutter_module/databaseHelper.dart';
+import 'package:flutter_module/register.dart';
 import 'package:flutter_module/userInfo.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -138,7 +141,7 @@ class LoginPageState extends State<LoginPage> {
                       })),
               obscureText: !_isShowPwd,
               // 校验密码
-              validator: validatePassWord,
+              // validator: validatePassWord,
               // 保存数据
               onSaved: (String value) {
                 _password = value;
@@ -185,10 +188,10 @@ class LoginPageState extends State<LoginPage> {
             // 点击登录按钮，解除焦点，回收键盘
             _focusNodeUserName.unfocus();
             _focusNodePassWord.unfocus();
-
-            if (_formKey.currentState.validate()) {
+            _formKey.currentState.save();
+            print("username: $_username, password: $_password");
+            if (_formKey.currentState.validate() && _username == "dev" && _password == "yuan") {
               // 输入验证通过
-              _formKey.currentState.save();
               // todo 等录接口相关操作
               print("登陆------");
               Map<String, dynamic> result = {'message': 'Back from flutter page >>> login'};
@@ -198,8 +201,46 @@ class LoginPageState extends State<LoginPage> {
                 if (value.length > 0) nativeChannel.invokeMethod('com.darrenyuen.webDAVClient/catalog', result);
               });
               // DatabaseHelper.instance.clearTable();
+            } else {
+              Fluttertoast.showToast(msg: "该用户不存在");
             }
           }),
+    );
+
+    Widget registerButtonArea = Container(
+      margin: EdgeInsets.only(left: 20, right: 20),
+      height: 45,
+      child: ElevatedButton(
+        // color: Colors.blue[500],
+        child: Text(
+          "注册",
+          style: TextStyle(color: Colors.white),
+        ),
+        // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+        style: ButtonStyle(
+          backgroundColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) {
+            return Colors.blue[500];
+          }),
+          shape: MaterialStateProperty.resolveWith<RoundedRectangleBorder>((Set<MaterialState> states) {
+            return RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0));
+          })
+          // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)) as MaterialStateProperty
+        ),
+        onPressed: () {
+          //点击注册按钮，接触焦点，收回键盘
+          _focusNodeUserName.unfocus();
+          _focusNodePassWord.unfocus();
+          //路由到注册页面
+          // RouteUtil.push(context, RegisterPage());
+          // Navigator.push(context, MaterialPageRoute(builder: (context) => RegisterPage()));
+          Fluttertoast.showToast(
+              msg: "请联系开发者进行新用户配置",
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.CENTER,
+              fontSize: 16);
+          // print("jump to register page");
+        },
+      ),
     );
 
     // 组装widget组件，形成界面
@@ -229,7 +270,9 @@ class LoginPageState extends State<LoginPage> {
                   inputTextArea,
                   // forgetPwdArea,
                   SizedBox(height: 14),
-                  loginButtonArea
+                  loginButtonArea,
+                  SizedBox(height: 14),
+                  registerButtonArea
                 ],
               ),
             )));

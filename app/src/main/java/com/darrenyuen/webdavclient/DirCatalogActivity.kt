@@ -131,24 +131,24 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
 
         // 使用文字
         val tv = TextView(this)
-        tv.text = "点击这里可以上传文件"
+        tv.text = "更多操作"
         tv.setTextColor(resources.getColor(R.color.black))
         tv.textSize = 20f
         tv.gravity = Gravity.CENTER
 
-        val guideViewForUploadBtn = GuideView.Builder.newInstance(this)
-                .setTargetView(mUploadBtn)
-                .setShape(HighLightShape.CIRCLE)
-                .setBgColor(resources.getColor(R.color.shadow))
-                .setCustomGuideView(tv)
-                .setDirection(Direction.TOP)
-                .setOnClickListener(object : GuideView.OnClickListener {
-                    override fun onClick(guideView: GuideView) {
-                        guideView.hide()
-                    }
-                })
-                .build()
-        guideViewForUploadBtn.show()
+//        val guideViewForUploadBtn = GuideView.Builder.newInstance(this)
+//                .setTargetView(mUploadBtn)
+//                .setShape(HighLightShape.CIRCLE)
+//                .setBgColor(resources.getColor(R.color.shadow))
+//                .setCustomGuideView(tv)
+//                .setDirection(Direction.TOP)
+//                .setOnClickListener(object : GuideView.OnClickListener {
+//                    override fun onClick(guideView: GuideView) {
+//                        guideView.hide()
+//                    }
+//                })
+//                .build()
+//        guideViewForUploadBtn.show()
     }
 
     private fun getDirRoot() {
