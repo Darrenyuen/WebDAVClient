@@ -4,13 +4,8 @@ import android.annotation.SuppressLint
 import android.app.*
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
 import android.net.Uri
-import android.os.Build
-import android.os.Environment
-import android.os.Handler
-import android.os.Looper
-import android.provider.SyncStateContract
+import android.os.*
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -19,24 +14,18 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.getSystemService
-import androidx.core.graphics.drawable.toIcon
 import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
-import com.darrenyuen.downloader.normal.FileUtils
-import com.darrenyuen.downloader.normal.NormalDownloader
 import com.darrenyuen.sardine.DownloadListener
 import com.darrenyuen.webdavclient.util.FileUtil
 import com.darrenyuen.webdavclient.widget.BottomDialog
-import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
-import okhttp3.internal.notify
 import java.io.*
+import java.util.*
 
 /**
  * Create by yuan on 2021/2/28
  */
-class FileContainerAdapter(private val mContext: Context, private var mNode: FileTreeNode) : RecyclerView.Adapter<FileContainerAdapter.ViewHolder>() {
+class FileContainerAdapter(private val mContext: Context, private var mFileList: LinkedList<FileBean>) : RecyclerView.Adapter<FileContainerAdapter.ViewHolder>() {
 
     val TAG = "FileContainerAdapter"
 
@@ -55,25 +44,25 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
 
     @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        Log.i(TAG, mNode.mChildren[position].mValue.path)
+        Log.i(TAG, mFileList[position].name)
         var fileType = FileType.File
         when {
-            mNode.mChildren[position].mValue.name.contains(".txt") -> {
+            mFileList[position].name.contains(".txt") -> {
                 holder.iconFileTypeIV.setImageResource(R.drawable.txt)
             }
-            mNode.mChildren[position].mValue.name.contains(".pdf") -> {
+            mFileList[position].name.contains(".pdf") -> {
                 holder.iconFileTypeIV.setImageResource(R.drawable.pdf)
             }
-            mNode.mChildren[position].mValue.name.contains(".apk") -> {
+            mFileList[position].name.contains(".apk") -> {
                 holder.iconFileTypeIV.setImageResource(R.drawable.apk)
             }
-            mNode.mChildren[position].mValue.name.contains(".doc") -> {
+            mFileList[position].name.contains(".doc") -> {
                 holder.iconFileTypeIV.setImageResource(R.drawable.word)
             }
-            mNode.mChildren[position].mValue.name.contains(".jpg") -> {
+            mFileList[position].name.contains(".jpg") -> {
                 holder.iconFileTypeIV.setImageResource(R.drawable.image)
             }
-            mNode.mChildren[position].mValue.name.contains(".mp4") -> {
+            mFileList[position].name.contains(".mp4") -> {
                 holder.iconFileTypeIV.setImageResource(R.drawable.video)
             }
             else -> {
@@ -82,18 +71,20 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
                 fileType = FileType.Dir
             }
         }
-        holder.fileNameTV.text = mNode.mChildren[position].mValue.name
+        holder.fileNameTV.text = mFileList[position].name
         if (fileType == FileType.File) {
-            val size = mNode.mChildren[position].mValue.size
+            val size = mFileList[position].size
             holder.fileSizeTV.let {
                 when {
                     size / 1024 == 0L -> it.text = size.toString() + "B"
-                    size / (1024 * 1024) == 0L -> it.text = (size / 1024.0).toString() + "KB"
-                    else -> it.text = (size / (1024.0 * 1024.0)).toString().substring(0, (size / (1024.0 * 1024.0)).toString().indexOf(".") + 2) + "MB"
+                    size / (1024 * 1024) == 0L -> it.text = (size / 1024.0).toString().let {
+                        it.substring(0, it.indexOf('.') + 3) + "KB"
+                    }
+                    else -> it.text = (size / (1024.0 * 1024.0)).toString().substring(0, (size / (1024.0 * 1024.0)).toString().indexOf(".") + 3) + "MB"
                 }
             }
         } else if (fileType == FileType.Dir) holder.fileSizeTV.visibility = View.GONE
-        holder.fileTimeTV.text = mNode.mChildren[position].mValue.lastModified.toString().replace("GMT+08:00 ", "")
+        holder.fileTimeTV.text = mFileList[position].lastModified.toString().replace("GMT+08:00 ", "")
         holder.moreIV.setOnClickListener {
             mBottomDialog = BottomDialog.Builder(mContext)
                     .title("请选择操作：")
@@ -104,14 +95,14 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
                     .itemSize(18)
                     .onItemClickListener {
                         when (it.id) {
-                            R.id.viewOnLine -> viewOnLine("http://119.29.176.115${mNode.mChildren[position].mValue.path}".replace("/webdav", ""))
-                            R.id.download -> webDavOperation(WebDavOperation.Download, mNode.mChildren[position].mValue.path, mNode.mChildren[position].mValue.name)
-                            R.id.rename -> webDavOperation(WebDavOperation.Rename, mNode.mChildren[position].mValue.path, mNode.mChildren[position].mValue.name)
-                            R.id.copy -> webDavOperation(WebDavOperation.Copy, mNode.mChildren[position].mValue.path, mNode.mChildren[position].mValue.name)
-                            R.id.detail -> webDavOperation(WebDavOperation.Detail, mNode.mChildren[position].mValue.path, mNode.mChildren[position].mValue.name)
+                            R.id.viewOnLine -> viewOnLine("http://119.29.176.115${mFileList[position].path}".replace("/webdav", ""))
+                            R.id.download -> webDavOperation(WebDavOperation.Download, mFileList[position].path, mFileList[position].name)
+                            R.id.rename -> webDavOperation(WebDavOperation.Rename, mFileList[position].path, mFileList[position].name)
+                            R.id.copy -> webDavOperation(WebDavOperation.Copy, mFileList[position].path, mFileList[position].name)
+                            R.id.detail -> webDavOperation(WebDavOperation.Detail, mFileList[position].path, mFileList[position].name)
                             R.id.delete -> {
-                                webDavOperation(WebDavOperation.Delete, mNode.mChildren[position].mValue.path, mNode.mChildren[position].mValue.name)
-                                mNode.mChildren.removeAt(position)
+                                webDavOperation(WebDavOperation.Delete, mFileList[position].path, mFileList[position].name)
+                                mFileList.removeAt(position)
                             }
                         }
                         mBottomDialog?.dismiss()
@@ -121,7 +112,7 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
         }
 //        val hasSDCard = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)
 //        val path = if (hasSDCard) {
-        val path = mContext.getExternalFilesDir(null).toString() + File.separator + mNode.mChildren[position].mValue.name
+        val path = mContext.getExternalFilesDir(null).toString() + File.separator + mFileList[position].name
 //        } else {
 //            mContext.getEx.toString() + File.separator + mNode.mChildren[position].mValue.name
 //        }
@@ -133,7 +124,13 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
                 Log.i(TAG, "file's size is ${File(path).length()}")
                 mContext.startActivity(FileUtil.openFile(path, mContext))
             }
-//            mOnItemClickListener?.onItemClick(mNode.mChildren[position], fileType)
+            val targetFileList = LinkedList<FileBean>()
+            mFileList.forEach {
+                if (it.path.startsWith(mFileList[position].path)) {
+                    targetFileList.add(it)
+                }
+            }
+            mOnItemClickListener?.onItemClick(mFileList[position], targetFileList, fileType)
         }
     }
 
@@ -153,7 +150,9 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
         sardine.setCredentials("dev", "yuan")
         when(operation) {
             WebDavOperation.Rename -> {
-                InputDialogFragment().show((mContext as FragmentActivity).supportFragmentManager, TAG, name, path)
+                InputDialogFragment().apply {
+                    arguments = Bundle().apply { putString(InputDialogFragment.OP, InputDialogFragment.RENAME_OP) }
+                }.show((mContext as FragmentActivity).supportFragmentManager, TAG, path, name)
 //                Thread {
 //                    Log.i(TAG, "http://119.29.176.115$path")
 //                    sardine.move("http://119.29.176.115$path", "http://119.29.176.115/66666.jpg")
@@ -315,11 +314,11 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
     }
 
     override fun getItemCount(): Int {
-        return mNode.mChildren.size
+        return mFileList.size
     }
 
-    fun setData(node: FileTreeNode) {
-        mNode = node
+    fun setData(fileList: LinkedList<FileBean>) {
+        mFileList = fileList
         notifyDataSetChanged()
     }
 
@@ -333,7 +332,7 @@ class FileContainerAdapter(private val mContext: Context, private var mNode: Fil
     }
 
     interface OnItemClickListener {
-        fun onItemClick(node: FileTreeNode, type: FileType)
+        fun onItemClick(rootFile: FileBean, fileList: LinkedList<FileBean>, type: FileType)
     }
 
 }

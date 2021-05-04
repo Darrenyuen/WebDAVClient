@@ -19,14 +19,15 @@ import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.darrenyuen.guide.Direction
-import com.darrenyuen.guide.GuideView
-import com.darrenyuen.guide.HighLightShape
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.darrenyuen.webdavclient.util.ConvertUtil
+import com.darrenyuen.webdavclient.util.NetworkUtil
 import com.darrenyuen.webdavclient.widget.BottomDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
+import java.util.*
+import kotlin.collections.ArrayList
 
 class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialogFragment.Callback {
 
@@ -36,8 +37,17 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
     private lateinit var navigationView: NavigationView
     private lateinit var userNameTV: TextView
     private lateinit var menuIV: ImageView
-    private var currentPath: String = "/"
+
+    /**
+     * 真实的当前文件路径，初始时为/webdav
+     */
+    private var currentPath: String = "/webdav/"
+
+    /**
+     * 展示出来的文件路径，需去掉开头的 /webdav 字符串
+     */
     private lateinit var pathTV: TextView
+    private lateinit var refreshLayout: SwipeRefreshLayout
     private lateinit var mRecyclerView: RecyclerView
     private lateinit var mAdapter: FileContainerAdapter
     private lateinit var mUploadBtn: FloatingActionButton
@@ -65,6 +75,7 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
             }
         }
         pathTV = findViewById(R.id.path)
+        refreshLayout = findViewById(R.id.refreshLayout)
         mRecyclerView = findViewById(R.id.fileContainer)
         mUploadBtn = findViewById(R.id.uploadFileBtn)
         mUploadBtn.setOnClickListener(this)
@@ -103,12 +114,22 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
                             }
 
                         }
+                        R.id.createDir -> {
+                            InputDialogFragment().apply {
+                                arguments = Bundle().apply { putString(InputDialogFragment.OP, InputDialogFragment.CREATE_DIR_OP) }
+                            }.show(supportFragmentManager, TAG, currentPath)
+                        }
+                        R.id.createFile -> {
+                            InputDialogFragment().apply {
+                                arguments = Bundle().apply { putString(InputDialogFragment.OP, InputDialogFragment.CREATE_FILE_OP) }
+                            }.show(supportFragmentManager, TAG, currentPath)
+                        }
                     }
                     mBottomDialog.dismiss()
                 }
                 .build()
         initEvent()
-        getDirRoot()
+        getFileList(currentPath)
     }
 
     private fun initEvent() {
@@ -122,6 +143,10 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
             }
             drawerLayout.closeDrawer(GravityCompat.START)
             true
+        }
+        refreshLayout.setOnRefreshListener {
+            getFileList(currentPath)
+
         }
         userNameTV.text = WebDAVContext.getDBService().getUserInfo(this).account
     }
@@ -151,49 +176,38 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
 //        guideViewForUploadBtn.show()
     }
 
-    private fun getDirRoot() {
-//        val sardine = SardineFactory.begin("dev", "yuan")
-//        sardine.list("http://119.29.176.115/webdav/").forEach {
-//            Log.i(TAG, it.path)
-//        }
+    private fun getFileList(parentPath: String) {
+
+        if (!NetworkUtil.isNetworkAvailable(this)) return
         Thread {
-            val sardine = com.darrenyuen.sardine.impl.OkHttpSardine()
+            val sardine = OkHttpSardine()
             sardine.setCredentials("dev", "yuan")
-//            sardine.list("http://119.29.176.115/webdav/").forEach {
-//                Log.i(TAG, it.path)
-//                dataList.add(FileBean(it.path, it.name, it.modified,  it.contentLength / (1024.0f * 1024)))
-//                pathList.add(it.path)
-//            }
-//            sardine.list("http://119.29.176.115/webdav/").first().apply {
-//                dataList.add(FileBean(path, name, modified, contentLength / (1024.0f * 1024)))
-//            }
             val dataList: ArrayList<FileBean> = ArrayList()
-            sardine.list("http://119.29.176.115/webdav/").forEach {
+            sardine.list("http://119.29.176.115$currentPath").forEach {
+                Log.i(TAG, "path: ${it.path}")
                 dataList.add(FileBean(it.path, it.name, it.modified, it.contentLength))
             }
-            //generate a file tree
-            dataList.forEach { it1 ->
-                if (it1.path == "/webdav/") {
-                    val tempList = ArrayList<FileTreeNode>()
-                    dataList.forEach { it2 ->
-                        if (it2.path != "/webdav/" && (it2.path.count('/') <= 3)) tempList.add(FileTreeNode(FileBean(it2.path, it2.name, it2.lastModified, it2.size)))
-                    }
-                    fileTreeRoot = FileTreeNode(FileBean(it1.path, it1.name, it1.lastModified, it1.size), tempList)
-                }
-            }
             runOnUiThread{
-//                dataList.forEach {
-//                    Log.i(TAG, it.toString())
-//                }
+                refreshLayout.isRefreshing = false
                 mRecyclerView.layoutManager = LinearLayoutManager(this)
-                mAdapter = FileContainerAdapter(this, fileTreeRoot)
+                val fileList = LinkedList<FileBean>()
+                dataList.forEach {
+                    if (it.path.startsWith(parentPath) && it.path.count('/') <= parentPath.count('/') + 1 && it.path != parentPath) fileList.add(it)
+                }
+                mAdapter = FileContainerAdapter(this, fileList)
                 mAdapter.setOnItemClickListener(object : FileContainerAdapter.OnItemClickListener {
                     @SuppressLint("SetTextI18n")
-                    override fun onItemClick(node: FileTreeNode, type: FileType) {
+                    override fun onItemClick(rootFile: FileBean, fileList: LinkedList<FileBean>, type: FileType) {
                         if (type == FileType.Dir) {
-                            currentPath = node.mValue.path
-                            pathTV.text = "当前路径：$node.mValue.path"
-                            updateFileDirContent(node)
+                            currentPath = rootFile.path
+                            pathTV.text = "当前路径：${currentPath.replace("/webdav", "")}"
+//                            val numOfDeChar = rootFile.path.count('/')
+//                            val tempFileList = LinkedList<FileBean>()
+                            getFileList(currentPath)
+//                            fileList.forEach {
+//                                if (it.path.startsWith(rootFile.path) && it.path.count('/') <= numOfDeChar + 1 && it.path != rootFile.path) tempFileList.add(it)
+//                            }
+//                            updateFileDirContent(tempFileList)
                         }
                     }
                 })
@@ -202,34 +216,33 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
         }.start()
     }
 
-    private fun updateFileDirContent(node: FileTreeNode) {
-        mAdapter.setData(node)
-//        Thread {
-//            val sardine = OkHttpSardine()
-//            val dataList = ArrayList<FileBean>()
-//            sardine.setCredentials("dev", "yuan")
-//            sardine.list("http://119.29.176.115/webdav/").forEach {
-//                if (it.path.startsWith(path) && it.path != path) {
-//                    dataList.add(FileBean(it.path, it.name, it.modified, it.contentLength / (1024.0f * 1024)))
-//                }
-//            }
-//            runOnUiThread {
-//                mAdapter.setData(dataList)
-//            }
-//        }.start()
-    }
+    private fun updateFileDirContent(fileList: LinkedList<FileBean>) = mAdapter.setData(fileList)
 
     override fun onBackPressed() {
-        if (currentPath == "/") {
+        if (currentPath == "/webdav/") {
             super.onBackPressed()
             return
         }
         currentPath = currentPath.substring(0, currentPath.lastIndexOf("/"))
-        Log.i(TAG, "currentPath: $currentPath")
         currentPath = currentPath.substring(0, currentPath.lastIndexOf("/") + 1)
-        Log.i(TAG, "currentPath: $currentPath")
-        pathTV.text = currentPath
-//        updateFileDirContent()
+        pathTV.text = "当前路径：" + currentPath.replace("/webdav", "")
+        getFileList(currentPath)
+//        Thread {
+//            val sardine = com.darrenyuen.sardine.impl.OkHttpSardine()
+//            sardine.setCredentials("dev", "yuan")
+//            val dataList = LinkedList<FileBean>()
+//            sardine.list("http://119.29.176.115/webdav/").forEach {
+//                Log.i(TAG, "path: ${it.path}")
+//                dataList.add(FileBean(it.path, it.name, it.modified, it.contentLength))
+//            }
+//            runOnUiThread {
+//                val fileList = LinkedList<FileBean>()
+//                dataList.forEach {
+//                    if (it.path.startsWith(currentPath) && it.path.count('/') <= currentPath.count('/') + 1 && it.path != "/webdav/") fileList.add(it)
+//                }
+//                updateFileDirContent(fileList)
+//            }
+//        }.start()
     }
 
     override fun onClick(v: View?) {
@@ -276,8 +289,7 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
                                 val displayName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
                                 cursor.close()
                                 displayName
-                            }
-                                    ?: "${System.currentTimeMillis()}.${MimeTypeMap.getSingleton().getExtensionFromMimeType(contentResolver.getType(it))}}"
+                            } ?: "${System.currentTimeMillis()}.${MimeTypeMap.getSingleton().getExtensionFromMimeType(contentResolver.getType(it))}}"
                             Log.i(TAG, "fileName is : $fileName")
                             upload(it1.readBytes(), fileName)
                         }
@@ -305,8 +317,10 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
             val format = oldName.substring(oldName.indexOf("."))
             var sardine = OkHttpSardine()
             sardine.setCredentials("dev", "yuan")
-            val oriUrl = "http://119.29.176.115/webdav/$oldName"
-            val desUrl = "http://119.29.176.115/webdav/$newName$format"
+            val oriUrl = "http://119.29.176.115$path"
+            val adjustPath = path.substring(0, path.lastIndexOf('/'))
+            val desUrl = "http://119.29.176.115$adjustPath/$newName$format"
+            Log.i(TAG, "oriUrl: $oriUrl, desUrl: $desUrl")
             if (sardine.exists(desUrl)) {
                 sardine.move(oriUrl, desUrl)
                 runOnUiThread {
@@ -320,6 +334,31 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
                 }
             }
             Log.i(TAG, "oriUrl is $oriUrl, desUrl is $desUrl")
+        }.start()
+    }
+
+    override fun onClickForCreateDir(path: String, dirName: String) {
+        Thread {
+            Log.i(TAG, "onClickForCreateDir() >>> path: $path, dirName: $dirName")
+            val sardine = OkHttpSardine()
+            sardine.setCredentials("dev", "yuan")
+            sardine.createDirectory("http://119.29.176.115$path$dirName")
+            runOnUiThread {
+                Toast.makeText(this, "创建成功", Toast.LENGTH_SHORT).show()
+            }
+        }.start()
+    }
+
+    override fun onClickForCreateFile(path: String, fileName: String) {
+        Thread {
+            Log.i(TAG, path)
+            val sardine = OkHttpSardine()
+            sardine.setCredentials("dev", "yuan")
+            val newFileUrl = "http://119.29.176.115$path$fileName"
+            sardine.put(newFileUrl, byteArrayOf())
+            runOnUiThread {
+                Toast.makeText(this, "创建成功", Toast.LENGTH_SHORT).show()
+            }
         }.start()
     }
 }
