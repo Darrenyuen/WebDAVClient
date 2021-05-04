@@ -37,6 +37,7 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
     private lateinit var navigationView: NavigationView
     private lateinit var userNameTV: TextView
     private lateinit var menuIV: ImageView
+    private lateinit var usedTV: TextView
 
     /**
      * 真实的当前文件路径，初始时为/webdav
@@ -69,6 +70,7 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
         drawerLayout = findViewById(R.id.drawerLayout)
         navigationView = findViewById(R.id.navigation_container)
         userNameTV = navigationView.getHeaderView(0).findViewById(R.id.userNameTV)
+        usedTV = navigationView.getHeaderView(0).findViewById(R.id.usedTV)
         menuIV = findViewById<ImageView>(R.id.menuIcon).apply {
             setOnClickListener {
                 drawerLayout.openDrawer(GravityCompat.START)
@@ -183,12 +185,21 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
             val sardine = OkHttpSardine()
             sardine.setCredentials("dev", "yuan")
             val dataList: ArrayList<FileBean> = ArrayList()
+            var usedSize = 0L
             sardine.list("http://119.29.176.115$currentPath").forEach {
                 Log.i(TAG, "path: ${it.path}")
+                usedSize += it.contentLength
                 dataList.add(FileBean(it.path, it.name, it.modified, it.contentLength))
             }
             runOnUiThread{
                 refreshLayout.isRefreshing = false
+                when {
+                    usedSize / 1024 == 0L -> usedTV.text = usedSize.toString() + "B"
+                    usedSize / (1024 * 1024) == 0L -> usedTV.text = (usedSize / 1024.0).toString().let {
+                        it.substring(0, it.indexOf('.') + 3) + "KB"
+                    }
+                    else -> usedTV.text = (usedSize / (1024.0 * 1024.0)).toString().substring(0, (usedSize / (1024.0 * 1024.0)).toString().indexOf(".") + 3) + "MB"
+                }
                 mRecyclerView.layoutManager = LinearLayoutManager(this)
                 val fileList = LinkedList<FileBean>()
                 dataList.forEach {

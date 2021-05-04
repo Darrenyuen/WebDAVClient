@@ -99,7 +99,7 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
                             R.id.download -> webDavOperation(WebDavOperation.Download, mFileList[position].path, mFileList[position].name)
                             R.id.rename -> webDavOperation(WebDavOperation.Rename, mFileList[position].path, mFileList[position].name)
                             R.id.copy -> webDavOperation(WebDavOperation.Copy, mFileList[position].path, mFileList[position].name)
-                            R.id.detail -> webDavOperation(WebDavOperation.Detail, mFileList[position].path, mFileList[position].name)
+//                            R.id.detail -> webDavOperation(WebDavOperation.Detail, mFileList[position].path, mFileList[position].name)
                             R.id.delete -> {
                                 webDavOperation(WebDavOperation.Delete, mFileList[position].path, mFileList[position].name)
                                 mFileList.removeAt(position)
@@ -237,6 +237,9 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
                         notifyDataSetChanged()
                     }
                 }.start()
+            }
+            WebDavOperation.Detail -> {
+
             }
         }
     }
