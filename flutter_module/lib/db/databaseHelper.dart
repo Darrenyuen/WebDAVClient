@@ -1,6 +1,6 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-import 'userInfo.dart';
+import '../bean/userInfo.dart';
 
 class DatabaseHelper {
 

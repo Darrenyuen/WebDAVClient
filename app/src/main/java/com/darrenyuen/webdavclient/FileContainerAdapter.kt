@@ -17,6 +17,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.content.FileProvider
 import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.darrenyuen.sardine.DownloadListener
@@ -87,6 +88,11 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
             }
         }
         holder.fileNameTV.text = mFileList[position].name
+        WebDAVContext.getDBService().getFileHashData(mContext).forEach {
+            if (it.fileName == mFileList[position].name && it.filePath == mFileList[position].path) {
+                holder.iconDoneIV.visibility = View.VISIBLE
+            }
+        }
         if (fileType == FileType.File) {
             val size = mFileList[position].size
             holder.fileSizeTV.let {
@@ -111,6 +117,7 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
                     .onItemClickListener {
                         when (it.id) {
                             R.id.viewOnLine -> viewOnLine("http://119.29.176.115${mFileList[position].path}".replace("/webdav", ""))
+//                            R.id.viewLocal -> viewOnLocal(mFileList[position].path, mFileList[position].name, downloadFileType)
                             R.id.download -> webDavOperation(WebDavOperation.Download, mFileList[position].path, mFileList[position].name, downloadFileType)
                             R.id.rename -> webDavOperation(WebDavOperation.Rename, mFileList[position].path, mFileList[position].name)
                             R.id.copy -> webDavOperation(WebDavOperation.Copy, mFileList[position].path, mFileList[position].name)
@@ -138,19 +145,20 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
         if (File(path).isFile && File(path).exists()) {
             holder.iconDoneIV.visibility = View.VISIBLE
         }
-        holder.itemView.setOnClickListener {
-            if (File(path).isFile && File(path).exists()) {
-                Log.i(TAG, "file's size is ${File(path).length()}")
-                mContext.startActivity(FileUtil.openFile(path, mContext))
-            }
-            val targetFileList = LinkedList<FileBean>()
-            mFileList.forEach {
-                if (it.path.startsWith(mFileList[position].path)) {
-                    targetFileList.add(it)
-                }
-            }
-            mOnItemClickListener?.onItemClick(mFileList[position], targetFileList, fileType)
-        }
+        //Android R后不能通过File(path)形式访问文件了？
+//        holder.itemView.setOnClickListener {
+//            if (File(path).isFile && File(path).exists()) {
+//                Log.i(TAG, "file's size is ${File(path).length()}")
+//                mContext.startActivity(FileUtil.openFile(path, mContext))
+//            }
+//            val targetFileList = LinkedList<FileBean>()
+//            mFileList.forEach {
+//                if (it.path.startsWith(mFileList[position].path)) {
+//                    targetFileList.add(it)
+//                }
+//            }
+//            mOnItemClickListener?.onItemClick(mFileList[position], targetFileList, fileType)
+//        }
     }
 
     private fun viewOnLine(url: String) {
@@ -162,6 +170,43 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
             intent.putExtra(WebviewActivity.urlParamKey, url)
             mContext.startActivity(intent)
         }
+    }
+
+    private fun viewOnLocal(path: String, name: String, fileType: StorageUtils.FileType) {
+        var flag = false
+        WebDAVContext.getDBService().getFileHashData(mContext).forEach {
+            if (it.fileName == name && it.filePath == path) {
+                flag = true
+            }
+        }
+        if (!flag) {
+            Toast.makeText(mContext, "该文件还未下载", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val uri = when (fileType) {
+            StorageUtils.FileType.File -> {
+                FileProvider.getUriForFile(mContext, "webdavclient.fileprovider", File(name))
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+                }
+                mContext.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            }
+            StorageUtils.FileType.Video -> {
+                FileProvider.getUriForFile(mContext, "webdavclient.fileprovider", File(name))
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+                }
+                mContext.contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
+            }
+            StorageUtils.FileType.Photo -> {
+                FileProvider.getUriForFile(mContext, "webdavclient.fileprovider", File(name))
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+                }
+                mContext.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+            }
+        }
+        mContext.startActivity(FileUtil.openFile(uri!!, name, mContext))
     }
 
     private fun webDavOperation(operation: WebDavOperation, path: String, name: String, downloadFileType: StorageUtils.FileType ?= null) {
@@ -226,12 +271,26 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
                         totalSize = contentLength
                         disconnect()
                     }
-//                    Log.i(TAG, "totalSize is $totalSize")
+                    WebDAVContext.getDBService().getFileHashData(mContext).forEach {
+                        if (it.fileName == name && it.filePath == path) {
+                            runOnUIThread {
+                                Toast.makeText(mContext, "该文件已下载到本地", Toast.LENGTH_SHORT).show()
+                            }
+                            return@Thread
+                        }
+                    }
+
                     StorageUtils.storageFile(mContext, sardine.get("http://119.29.176.115$path"), totalSize, name, downloadFileType!!, object : StorageUtils.StorageFileListener {
                         override fun onSuccess() {
                             mBuilder.setProgress(0, 0,false)
                             mBuilder.setContentText("下载完成")
                             notificationManager.notify(1, mBuilder.build())
+                            WebDAVContext.getDBService().writeFileHashData(mContext, path, name)
+                            runOnUIThread {
+                                Toast.makeText(mContext, "下载完成", Toast.LENGTH_SHORT).show()
+                                mBottomDialog?.dismiss()
+                                notifyDataSetChanged()
+                            }
                         }
 
                         override fun onFailure(msg: String?) {
@@ -260,12 +319,6 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
 //                            Environment.getDownloadCacheDirectory().toString() + File.separator + name
 //                        }
 //                    }
-
-                    runOnUIThread {
-                        Toast.makeText(mContext, "下载完成", Toast.LENGTH_SHORT).show()
-                        mBottomDialog?.dismiss()
-                        notifyDataSetChanged()
-                    }
                 }.start()
             }
             WebDavOperation.Delete -> {

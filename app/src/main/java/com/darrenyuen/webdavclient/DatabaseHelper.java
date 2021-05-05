@@ -18,7 +18,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         String createUserInfoTable = "create table UserInfo(account varchar(64), password varchar(64))";
+        String createHashData = "create table FileHashData(path varchar(64), fileName varchar(64))";
         db.execSQL(createUserInfoTable);
+        db.execSQL(createHashData);
     }
 
     @Override

@@ -3,6 +3,9 @@
     <item android:id="@+id/viewOnLine"
         android:icon="@drawable/icon_view"
         android:title="在线查看"/>
+<!--    <item android:id="@+id/viewLocal"-->
+<!--        android:icon="@drawable/icon_view_local"-->
+<!--        android:title="本地查看"/>-->
     <item android:id="@+id/download"
         android:icon="@drawable/icon_download"
         android:title="下载"/>

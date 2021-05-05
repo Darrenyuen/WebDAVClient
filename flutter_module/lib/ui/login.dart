@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_module/RouteUtil.dart';
-import 'package:flutter_module/databaseHelper.dart';
-import 'package:flutter_module/register.dart';
-import 'package:flutter_module/userInfo.dart';
+import 'file:///E:/GraduationProj/WebDAVClient/android/flutter_module/lib/util/RouteUtil.dart';
+import 'file:///E:/GraduationProj/WebDAVClient/android/flutter_module/lib/db/databaseHelper.dart';
+import 'file:///E:/GraduationProj/WebDAVClient/android/flutter_module/lib/ui/register.dart';
+import 'file:///E:/GraduationProj/WebDAVClient/android/flutter_module/lib/bean/userInfo.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class LoginPage extends StatefulWidget {
