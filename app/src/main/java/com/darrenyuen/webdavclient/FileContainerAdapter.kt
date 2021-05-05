@@ -2,10 +2,13 @@ package com.darrenyuen.webdavclient
 
 import android.annotation.SuppressLint
 import android.app.*
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.*
+import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -18,8 +21,11 @@ import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.darrenyuen.sardine.DownloadListener
 import com.darrenyuen.webdavclient.util.FileUtil
+import com.darrenyuen.webdavclient.util.StorageUtils
 import com.darrenyuen.webdavclient.widget.BottomDialog
 import java.io.*
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.*
 
 /**
@@ -46,29 +52,37 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         Log.i(TAG, mFileList[position].name)
         var fileType = FileType.File
+        var downloadFileType: StorageUtils.FileType
         when {
             mFileList[position].name.contains(".txt") -> {
                 holder.iconFileTypeIV.setImageResource(R.drawable.txt)
+                downloadFileType = StorageUtils.FileType.File
             }
             mFileList[position].name.contains(".pdf") -> {
                 holder.iconFileTypeIV.setImageResource(R.drawable.pdf)
+                downloadFileType = StorageUtils.FileType.File
             }
             mFileList[position].name.contains(".apk") -> {
                 holder.iconFileTypeIV.setImageResource(R.drawable.apk)
+                downloadFileType = StorageUtils.FileType.File
             }
             mFileList[position].name.contains(".doc") -> {
                 holder.iconFileTypeIV.setImageResource(R.drawable.word)
+                downloadFileType = StorageUtils.FileType.File
             }
             mFileList[position].name.contains(".jpg") -> {
                 holder.iconFileTypeIV.setImageResource(R.drawable.image)
+                downloadFileType = StorageUtils.FileType.Photo
             }
             mFileList[position].name.contains(".mp4") -> {
                 holder.iconFileTypeIV.setImageResource(R.drawable.video)
+                downloadFileType = StorageUtils.FileType.Video
             }
             else -> {
                 holder.iconFileTypeIV.setImageResource(R.drawable.dir)
 //            holder.fileSizeTV.visibility = View.GONE
                 fileType = FileType.Dir
+                downloadFileType = StorageUtils.FileType.File
             }
         }
         holder.fileNameTV.text = mFileList[position].name
@@ -96,7 +110,7 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
                     .onItemClickListener {
                         when (it.id) {
                             R.id.viewOnLine -> viewOnLine("http://119.29.176.115${mFileList[position].path}".replace("/webdav", ""))
-                            R.id.download -> webDavOperation(WebDavOperation.Download, mFileList[position].path, mFileList[position].name)
+                            R.id.download -> webDavOperation(WebDavOperation.Download, mFileList[position].path, mFileList[position].name, downloadFileType)
                             R.id.rename -> webDavOperation(WebDavOperation.Rename, mFileList[position].path, mFileList[position].name)
                             R.id.copy -> webDavOperation(WebDavOperation.Copy, mFileList[position].path, mFileList[position].name)
 //                            R.id.detail -> webDavOperation(WebDavOperation.Detail, mFileList[position].path, mFileList[position].name)
@@ -145,80 +159,101 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
         }
     }
 
-    private fun webDavOperation(operation: WebDavOperation, path: String, name: String) {
+    private fun webDavOperation(operation: WebDavOperation, path: String, name: String, downloadFileType: StorageUtils.FileType ?= null) {
         val sardine = com.darrenyuen.sardine.impl.OkHttpSardine()
         sardine.setCredentials("dev", "yuan")
+        Log.i(TAG, "webDavOperation() >>> path: $path")
         when(operation) {
             WebDavOperation.Rename -> {
                 InputDialogFragment().apply {
                     arguments = Bundle().apply { putString(InputDialogFragment.OP, InputDialogFragment.RENAME_OP) }
                 }.show((mContext as FragmentActivity).supportFragmentManager, TAG, path, name)
-//                Thread {
-//                    Log.i(TAG, "http://119.29.176.115$path")
-//                    sardine.move("http://119.29.176.115$path", "http://119.29.176.115/66666.jpg")
-//                }.start()
-
-                
             }
             WebDavOperation.Download -> {
                 Thread {
-                    val mBuilder = NotificationCompat.Builder(mContext, "").apply {
-                        setContentTitle("下载任务")
-                        setContentText("下载进度")
-                        setSmallIcon(R.drawable.head)
-                        priority = NotificationCompat.PRIORITY_DEFAULT
-                        setAutoCancel(true)
-                    }
+//                    val downloadListener = object : DownloadListener {
+//                        override fun onProgress(progress: Float) {
+//                            runOnUIThread {
+//                                notificationManager.apply {
+//                                    mBuilder.setContentText("下载进度：$progress").setProgress(100, progress.toInt(), false)
+//                                    notify(1, mBuilder.build())
+//                                }
+//                            }
+//                        }
+//
+//                        override fun onSuccess() {
+//                            runOnUIThread {
+//                                notificationManager.apply {
+//                                    mBuilder.setContentText("下载完成")
+//                                            .setProgress(0, 0, false)
+//                                    notify(1, mBuilder.build())
+//                                }
+//                            }
+//                        }
+//
+//                        override fun onFailure(errMsg: String?) {
+//
+//                        }
+//                    }
+//                    sardine.get("http://119.29.176.115$path", Environment.getExternalStorageDirectory().absolutePath + File.separator + name, downloadListener)
 
                     val notificationManager: NotificationManager = mContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
+                    val mBuilder = NotificationCompat.Builder(mContext, "channelId").apply {
+                        setContentTitle("下载任务")
+                        setSmallIcon(R.drawable.head)
+                        priority = NotificationCompat.PRIORITY_DEFAULT
+                    }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         val name = mContext.getString(R.string.app_name)
                         val descriptionText = mContext.getString(R.string.app_name)
                         val importance = NotificationManager.IMPORTANCE_DEFAULT
-                        val channel = NotificationChannel("", name, importance).apply {
+                        val channel = NotificationChannel("channelId", name, importance).apply {
                             description = descriptionText
                         }
                         // Register the channel with the system
                         notificationManager.createNotificationChannel(channel)
                     }
 
-                    sardine.get("http://119.29.176.115$path", "/storage/emulated/0/Pictures/weixin" + File.separator + name, object : DownloadListener {
-                        override fun onProgress(progress: Float) {
-                            runOnUIThread {
-                                notificationManager.apply {
-                                    mBuilder.setContentText("下载进度：$progress").setProgress(100, progress.toInt(), false)
-                                    notify(1, mBuilder.build())
-                                }
-                            }
-                        }
-
+                    var totalSize = 0
+                    val url = "http://119.29.176.115$path".replace("/webdav", "")
+                    val httpURLConnection = URL(url).openConnection() as HttpURLConnection
+                    httpURLConnection.apply {
+                        totalSize = contentLength
+                        disconnect()
+                    }
+//                    Log.i(TAG, "totalSize is $totalSize")
+                    StorageUtils.storageFile(mContext, sardine.get("http://119.29.176.115$path"), totalSize, name, downloadFileType!!, object : StorageUtils.StorageFileListener {
                         override fun onSuccess() {
+                            mBuilder.setProgress(0, 0,false)
+                            mBuilder.setContentText("下载完成")
+                            notificationManager.notify(1, mBuilder.build())
+                        }
+
+                        override fun onFailure(msg: String?) {
+
+                        }
+
+                        override fun onBegin() {
                             runOnUIThread {
-                                notificationManager.apply {
-                                    mBuilder.setContentText("下载完成")
-                                            .setProgress(0, 0, false)
-                                    notify(1, mBuilder.build())
-                                }
+                                Toast.makeText(mContext, "开始下载", Toast.LENGTH_SHORT).show()
                             }
                         }
 
-                        override fun onFailure(errMsg: String?) {
-
+                        override fun onProgress(progress: Double) {
+                            mBuilder.setContentText("下载进度")
+                            mBuilder.setProgress(100, progress.toInt(),false)
+                            notificationManager.notify(1, mBuilder.build())
                         }
                     })
-//                    writeToDisk(sardine.get("http://119.29.176.115$path")) {
-////                        "data/data/${mContext.packageName}/$name"
-////                        val hasSDCard = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)
-////                        if (hasSDCard) {
-////                            Environment.getExternalStorageDirectory().toString() + File.separator + name
-////                            Environment.getExternalStorageDirectory().toString() + File.separator + System.currentTimeMillis() + ".jpg"
-////                        } else {
-////                            Environment.getDownloadCacheDirectory().toString() + File.separator + System.currentTimeMillis() + ".jpg"
-//                        mContext.getExternalFilesDir(null).toString() + File.separator + name
-////                        mContext.filesDir.toString() + File.separator + name
-////                        Environment.getExternalStorageState() + File.separator + name
-////                        }
+
+//                    writeToDisk(sardine.get("http://119.29.176.115$path"), name)
+//                    {
+//                        val hasSDCard = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)
+//                        if (hasSDCard) {
+//                            Environment.getExternalStorageDirectory().toString() + File.separator + name
+//                        } else {
+//                            Environment.getDownloadCacheDirectory().toString() + File.separator + name
+//                        }
 //                    }
 
                     runOnUIThread {
@@ -244,57 +279,104 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
         }
     }
 
-    private fun writeToDisk(inputStream: InputStream, diskPath: () -> String) {
-        Log.i(TAG, "diskPath is ${diskPath.invoke()}")
+    private fun writeToDisk(inputStream: InputStream, name: String) {
+//        Log.i(TAG, "diskPath is ${diskPath.invoke()}")
 
-        val mBuilder = NotificationCompat.Builder(mContext, "").apply {
-            setContentTitle("下载任务")
-            setContentText("下载进度")
-            setSmallIcon(R.drawable.head)
-            priority = NotificationCompat.PRIORITY_DEFAULT
-            setAutoCancel(true)
-        }
-
-        val notificationManager: NotificationManager = mContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = mContext.getString(R.string.app_name)
-            val descriptionText = mContext.getString(R.string.app_name)
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel("", name, importance).apply {
-                description = descriptionText
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DCIM + "/WebDAVClient")//保存路径
+                put(MediaStore.MediaColumns.IS_PENDING, true)
             }
-            // Register the channel with the system
-            notificationManager.createNotificationChannel(channel)
         }
+        val insert = mContext.contentResolver.insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                contentValues
+        ) ?: return //为空的话 直接失败返回了
 
-        notificationManager.apply {
-            mBuilder.setProgress(100, 0, false)
-            notify(1, mBuilder.build())
-            for (i in 1..10) {
-                Thread.sleep(500)
-                mBuilder.setProgress(100, 10 * i, false)
-                notify(1, mBuilder.build())
-            }
-            mBuilder.setContentText("下载完成")
-                .setProgress(0, 0, false)
-            notify(1, mBuilder.build())
-        }
-
-        val buffer = ByteArray(1024 * 10)
-        var len = -1
-        try {
-            RandomAccessFile(diskPath.invoke(), "rw").use { randomAccessFile ->
-                BufferedInputStream(inputStream).use { bis ->
-                    while (bis.read(buffer).also { len = it } != -1) {
-                        randomAccessFile.write(buffer, 0, len)
-                    }
+        //这个打开了输出流  直接保存图片就好了
+        mContext.contentResolver.openOutputStream(insert).use { ons ->
+            inputStream.use { ins ->
+                val buf = ByteArray(2048)
+                var len: Int
+                while (ins.read(buf).also { len = it } != -1) {
+                    ons?.write(buf, 0, len)
                 }
+                ons?.flush()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Log.e(TAG, e.message ?: "")
+//            inputStream.copyTo(it!!)
+//            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            contentValues.put(MediaStore.MediaColumns.IS_PENDING, false)
+        }
+
+
+
+//        val mBuilder = NotificationCompat.Builder(mContext, "").apply {
+//            setContentTitle("下载任务")
+//            setContentText("下载进度")
+//            setSmallIcon(R.drawable.head)
+//            priority = NotificationCompat.PRIORITY_DEFAULT
+//            setAutoCancel(true)
+//        }
+//
+//        val notificationManager: NotificationManager = mContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+//
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            val name = mContext.getString(R.string.app_name)
+//            val descriptionText = mContext.getString(R.string.app_name)
+//            val importance = NotificationManager.IMPORTANCE_DEFAULT
+//            val channel = NotificationChannel("", name, importance).apply {
+//                description = descriptionText
+//            }
+//            // Register the channel with the system
+//            notificationManager.createNotificationChannel(channel)
+//        } else {
+//
+//        }
+
+//        notificationManager.apply {
+//            mBuilder.setProgress(100, 0, false)
+//            notify(1, mBuilder.build())
+//            val buffer = ByteArray(1024 * 10)
+//            var len = -1
+//            var i = 1
+//            try {
+//                RandomAccessFile(diskPath.invoke(), "rw").use { randomAccessFile ->
+//                    BufferedInputStream(inputStream).use { bis ->
+//                        while (bis.read(buffer).also { len = it } != -1) {
+//                            randomAccessFile.write(buffer, 0, len)
+//                            if (i >= 10) mBuilder.setProgress(0, 0,false)
+//                            else mBuilder.setProgress(100, (i++) * 10 ,false)
+//                            notify(1, mBuilder.build())
+//                        }
+//                    }
+//                }
+//            } catch (e: Exception) {
+//                e.printStackTrace()
+//                Log.e(TAG, e.message ?: "")
+//            }
+//            mBuilder.setContentText("下载完成")
+//                .setProgress(0, 0, false)
+//            notify(1, mBuilder.build())
+//        }
+
+//        val buffer = ByteArray(1024 * 10)
+//        var len = -1
+//        try {
+//            RandomAccessFile(diskPath.invoke(), "rw").use { randomAccessFile ->
+//                BufferedInputStream(inputStream).use { bis ->
+//                    while (bis.read(buffer).also { len = it } != -1) {
+//                        randomAccessFile.write(buffer, 0, len)
+//                    }
+//                }
+//            }
+//        } catch (e: Exception) {
+//            e.printStackTrace()
+//            Log.e(TAG, e.message ?: "")
+//        }
 
 //        FileUtils.getFileContentLength(diskPath.invoke())
 //        val destFile = File(diskPath.invoke())
