@@ -20,6 +20,7 @@ import androidx.core.app.NotificationCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.darrenyuen.sardine.DownloadListener
+import com.darrenyuen.webdavclient.util.ClipboardUtil
 import com.darrenyuen.webdavclient.util.FileUtil
 import com.darrenyuen.webdavclient.util.StorageUtils
 import com.darrenyuen.webdavclient.widget.BottomDialog
@@ -113,6 +114,10 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
                             R.id.download -> webDavOperation(WebDavOperation.Download, mFileList[position].path, mFileList[position].name, downloadFileType)
                             R.id.rename -> webDavOperation(WebDavOperation.Rename, mFileList[position].path, mFileList[position].name)
                             R.id.copy -> webDavOperation(WebDavOperation.Copy, mFileList[position].path, mFileList[position].name)
+                            R.id.share -> {
+                                ClipboardUtil.copyToClipboard("http://119.29.176.115${mFileList[position].path}".replace("/webdav", ""))
+                                Toast.makeText(mContext, "已复制分享链接到粘贴板", Toast.LENGTH_SHORT).show()
+                            }
 //                            R.id.detail -> webDavOperation(WebDavOperation.Detail, mFileList[position].path, mFileList[position].name)
                             R.id.delete -> {
                                 webDavOperation(WebDavOperation.Delete, mFileList[position].path, mFileList[position].name)
