@@ -1,4 +1,4 @@
-package com.darrenyuen.webdavclient
+package com.darrenyuen.webdavclient.activity
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -20,6 +20,9 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.darrenyuen.webdavclient.*
+import com.darrenyuen.webdavclient.bean.FileBean
+import com.darrenyuen.webdavclient.bean.FileTreeNode
 import com.darrenyuen.webdavclient.util.ConvertUtil
 import com.darrenyuen.webdavclient.util.NetworkUtil
 import com.darrenyuen.webdavclient.widget.BottomDialog
@@ -51,11 +54,16 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
     private lateinit var refreshLayout: SwipeRefreshLayout
     private lateinit var mRecyclerView: RecyclerView
     private lateinit var mAdapter: FileContainerAdapter
+    private lateinit var mSearchFileBtn: FloatingActionButton
     private lateinit var mUploadBtn: FloatingActionButton
 
     private lateinit var fileTreeRoot: FileTreeNode
 
     private lateinit var mBottomDialog: BottomDialog
+    private var isShowingSearch = false
+
+
+    val dataList: ArrayList<FileBean> = ArrayList()
 
     companion object {
         const val TAKE_PHOTO = 0
@@ -79,7 +87,9 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
         pathTV = findViewById(R.id.path)
         refreshLayout = findViewById(R.id.refreshLayout)
         mRecyclerView = findViewById(R.id.fileContainer)
+        mSearchFileBtn = findViewById(R.id.searchFileBtn)
         mUploadBtn = findViewById(R.id.uploadFileBtn)
+        mSearchFileBtn.setOnClickListener(this)
         mUploadBtn.setOnClickListener(this)
         mBottomDialog = BottomDialog.Builder(this)
                 .title("上传至我的WebDAV服务器")
@@ -181,10 +191,11 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
     private fun getFileList(parentPath: String) {
 
         if (!NetworkUtil.isNetworkAvailable(this)) return
+        pathTV.visibility = View.VISIBLE
+        dataList.clear()
         Thread {
             val sardine = OkHttpSardine()
             sardine.setCredentials("dev", "yuan")
-            val dataList: ArrayList<FileBean> = ArrayList()
             var usedSize = 0L
             sardine.list("http://119.29.176.115$currentPath").forEach {
                 Log.i(TAG, "path: ${it.path}")
@@ -230,10 +241,16 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
     private fun updateFileDirContent(fileList: LinkedList<FileBean>) = mAdapter.setData(fileList)
 
     override fun onBackPressed() {
+        if (isShowingSearch) {
+            getFileList("/webdav/")
+            isShowingSearch = false
+            return
+        }
         if (currentPath == "/webdav/") {
             super.onBackPressed()
             return
         }
+        pathTV.visibility = View.VISIBLE
         currentPath = currentPath.substring(0, currentPath.lastIndexOf("/"))
         currentPath = currentPath.substring(0, currentPath.lastIndexOf("/") + 1)
         pathTV.text = "当前路径：" + currentPath.replace("/webdav", "")
@@ -259,6 +276,11 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
     override fun onClick(v: View?) {
         when(v?.id) {
             R.id.uploadFileBtn -> mBottomDialog.show()
+            R.id.searchFileBtn -> {
+                InputDialogFragment().apply {
+                    arguments = Bundle().apply { putString(InputDialogFragment.OP, InputDialogFragment.SEARCH_FILE) }
+                }.show(supportFragmentManager, TAG, currentPath)
+            }
         }
     }
 
@@ -371,6 +393,21 @@ class DirCatalogActivity : AppCompatActivity(), View.OnClickListener, InputDialo
                 Toast.makeText(this, "创建成功", Toast.LENGTH_SHORT).show()
             }
         }.start()
+    }
+
+    override fun onSearchFile(fileNameText: String) {
+        isShowingSearch = true
+        Log.i(TAG, "onSearchFile() >>>> $fileNameText")
+        if (fileNameText.isEmpty()) {
+            Toast.makeText(this, "文件名不能为空", Toast.LENGTH_SHORT).show()
+        }
+        val fileList = LinkedList<FileBean>()
+        dataList.forEach {
+            if (it.name.contains(fileNameText)) fileList.add(it)
+        }
+        pathTV.visibility = View.GONE
+        mAdapter = FileContainerAdapter(this, fileList)
+        mRecyclerView.adapter = mAdapter
     }
 }
 

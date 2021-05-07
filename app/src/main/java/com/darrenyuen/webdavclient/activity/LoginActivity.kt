@@ -1,4 +1,4 @@
-package com.darrenyuen.webdavclient
+package com.darrenyuen.webdavclient.activity
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
@@ -7,12 +7,10 @@ import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.RelativeLayout
-import com.darrenyuen.webdavclient.util.FlutterRoute
-import io.flutter.embedding.android.FlutterFragment
+import com.darrenyuen.webdavclient.R
 import io.flutter.embedding.android.FlutterView
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.dart.DartExecutor
-import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 
 class LoginActivity : AppCompatActivity() {

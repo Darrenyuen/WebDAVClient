@@ -1,14 +1,11 @@
-package com.darrenyuen.webdavclient
+package com.darrenyuen.webdavclient.activity
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
-import android.view.View
-import android.webkit.WebChromeClient
-import android.webkit.WebSettings
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import android.widget.ImageView
+import com.darrenyuen.webdavclient.R
 
 class WebviewActivity : AppCompatActivity() {
 

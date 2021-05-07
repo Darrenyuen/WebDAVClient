@@ -1,4 +1,4 @@
-package com.darrenyuen.webdavclient
+package com.darrenyuen.webdavclient.bean
 
 /**
  * Create by yuan on 2021/3/16

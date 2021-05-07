@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:openDrawer="start"
-    tools:context=".DirCatalogActivity">
+    tools:context=".activity.DirCatalogActivity">
 
     <include layout="@layout/dir_container"/>
 

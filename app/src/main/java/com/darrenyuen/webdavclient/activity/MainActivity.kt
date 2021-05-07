@@ -1,26 +1,16 @@
-package com.darrenyuen.webdavclient
+package com.darrenyuen.webdavclient.activity
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.provider.Settings
 import android.util.Log
 import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import com.darrenyuen.downloader.DownloadListener
-import com.darrenyuen.downloader.DownloaderFactory
-import com.darrenyuen.downloader.DownloaderType
-import kotlinx.coroutines.*
-import java.io.File
+import com.darrenyuen.webdavclient.R
+import com.darrenyuen.webdavclient.WebDAVContext
 
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {

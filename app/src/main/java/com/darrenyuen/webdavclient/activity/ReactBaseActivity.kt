@@ -1,8 +1,9 @@
-package com.darrenyuen.webdavclient
+package com.darrenyuen.webdavclient.activity
 
 import android.app.Activity
 import android.os.Bundle
 import android.view.KeyEvent
+import com.darrenyuen.webdavclient.BuildConfig
 import com.facebook.react.ReactInstanceManager
 import com.facebook.react.ReactRootView
 import com.facebook.react.common.LifecycleState

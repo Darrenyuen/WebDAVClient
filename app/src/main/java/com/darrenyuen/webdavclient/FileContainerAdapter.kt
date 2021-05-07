@@ -5,7 +5,6 @@ import android.app.*
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
 import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
@@ -16,11 +15,13 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
-import com.darrenyuen.sardine.DownloadListener
+import com.darrenyuen.webdavclient.activity.WebviewActivity
+import com.darrenyuen.webdavclient.bean.FileBean
 import com.darrenyuen.webdavclient.util.ClipboardUtil
 import com.darrenyuen.webdavclient.util.FileUtil
 import com.darrenyuen.webdavclient.util.StorageUtils
@@ -50,6 +51,7 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
         return ViewHolder(LayoutInflater.from(mContext).inflate(R.layout.item_file, parent, false))
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
     @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         Log.i(TAG, mFileList[position].name)
@@ -116,7 +118,13 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
                     .itemSize(18)
                     .onItemClickListener {
                         when (it.id) {
-                            R.id.viewOnLine -> viewOnLine("http://119.29.176.115${mFileList[position].path}".replace("/webdav", ""))
+                            R.id.viewOnLine -> {
+                                if (fileType == FileType.Dir) {
+                                    Toast.makeText(mContext, "不能在线查看文件夹", Toast.LENGTH_SHORT).show()
+                                    return@onItemClickListener
+                                }
+                                viewOnLine("http://119.29.176.115${mFileList[position].path}".replace("/webdav", ""))
+                            }
 //                            R.id.viewLocal -> viewOnLocal(mFileList[position].path, mFileList[position].name, downloadFileType)
                             R.id.download -> webDavOperation(WebDavOperation.Download, mFileList[position].path, mFileList[position].name, downloadFileType)
                             R.id.rename -> webDavOperation(WebDavOperation.Rename, mFileList[position].path, mFileList[position].name)
@@ -130,6 +138,8 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
                                 webDavOperation(WebDavOperation.Delete, mFileList[position].path, mFileList[position].name)
                                 mFileList.removeAt(position)
                             }
+                            R.id.lock -> webDavOperation(WebDavOperation.Lock, mFileList[position].path, mFileList[position].name)
+                            R.id.unLock -> webDavOperation(WebDavOperation.Unlock, mFileList[position].path, mFileList[position].name)
                         }
                         mBottomDialog?.dismiss()
                     }
@@ -146,19 +156,19 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
             holder.iconDoneIV.visibility = View.VISIBLE
         }
         //Android R后不能通过File(path)形式访问文件了？
-//        holder.itemView.setOnClickListener {
+        holder.itemView.setOnClickListener {
 //            if (File(path).isFile && File(path).exists()) {
 //                Log.i(TAG, "file's size is ${File(path).length()}")
 //                mContext.startActivity(FileUtil.openFile(path, mContext))
 //            }
-//            val targetFileList = LinkedList<FileBean>()
-//            mFileList.forEach {
-//                if (it.path.startsWith(mFileList[position].path)) {
-//                    targetFileList.add(it)
-//                }
-//            }
-//            mOnItemClickListener?.onItemClick(mFileList[position], targetFileList, fileType)
-//        }
+            val targetFileList = LinkedList<FileBean>()
+            mFileList.forEach {
+                if (it.path.startsWith(mFileList[position].path)) {
+                    targetFileList.add(it)
+                }
+            }
+            mOnItemClickListener?.onItemClick(mFileList[position], targetFileList, fileType)
+        }
     }
 
     private fun viewOnLine(url: String) {
@@ -209,10 +219,15 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
         mContext.startActivity(FileUtil.openFile(uri!!, name, mContext))
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
     private fun webDavOperation(operation: WebDavOperation, path: String, name: String, downloadFileType: StorageUtils.FileType ?= null) {
         val sardine = com.darrenyuen.sardine.impl.OkHttpSardine()
         sardine.setCredentials("dev", "yuan")
-        Log.i(TAG, "webDavOperation() >>> path: $path")
+        Log.i(TAG, "webDavOperation() >>> operation: ${operation.name} path: $path")
+        if (operation != WebDavOperation.Unlock && WebDAVContext.getDBService().isLock(mContext, path)) {
+            Toast.makeText(mContext, "该文件已被锁定，请先解锁再操作", Toast.LENGTH_SHORT).show()
+            return
+        }
         when(operation) {
             WebDavOperation.Rename -> {
                 InputDialogFragment().apply {
@@ -333,6 +348,31 @@ class FileContainerAdapter(private val mContext: Context, private var mFileList:
             }
             WebDavOperation.Detail -> {
 
+            }
+//            WebDavOperation.Search -> {
+//                Thread {
+//                    sardine.search("http://119.29.176.115$path", "davbasic", "1").forEach {
+//                        Log.i(TAG, "search result: ${it.displayName}")
+//                    }
+//                }.start()
+//            }
+            WebDavOperation.Lock -> {
+                Thread {
+//                    sardine.lock("http://119.29.176.115$path")
+                    WebDAVContext.getDBService().changeLockStatus(mContext, true, path)
+                    runOnUIThread {
+                        Toast.makeText(mContext, "该文件锁定成功", Toast.LENGTH_SHORT).show()
+                    }
+                }.start()
+            }
+            WebDavOperation.Unlock -> {
+                Thread {
+//                    sardine.unlock("http://119.29.176.115$path", "token")
+                    WebDAVContext.getDBService().changeLockStatus(mContext, false, path)
+                    runOnUIThread {
+                        Toast.makeText(mContext, "该文件解锁成功", Toast.LENGTH_SHORT).show()
+                    }
+                }.start()
             }
         }
     }

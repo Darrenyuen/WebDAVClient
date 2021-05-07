@@ -1,4 +1,4 @@
-package com.darrenyuen.webdavclient
+package com.darrenyuen.webdavclient.bean
 
 import java.util.*
 

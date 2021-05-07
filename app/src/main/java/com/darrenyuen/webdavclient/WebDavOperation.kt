@@ -9,5 +9,8 @@ enum class WebDavOperation {
     Move,
     Copy,
     Detail,
-    Delete
+    Delete,
+    Search,
+    Lock,
+    Unlock
 }

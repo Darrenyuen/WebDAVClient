@@ -39,6 +39,19 @@
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/searchFileBtn"
+        android:src="@drawable/icon_search"
+        app:backgroundTint="@color/colorPrimary"
+        android:layout_above="@+id/uploadFileBtn"
+        android:layout_alignParentRight="true"
+        android:layout_margin="10dp"
+        android:layout_marginBottom="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="TODO"
+        android:layout_alignParentEnd="true" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/uploadFileBtn"
         android:src="@drawable/icon_add"
         app:backgroundTint="@color/colorPrimary"

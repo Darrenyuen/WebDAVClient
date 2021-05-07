@@ -22,6 +22,7 @@ class InputDialogFragment : DialogFragment() {
         const val RENAME_OP = "RENAME"
         const val CREATE_DIR_OP = "CREATE_DIR"
         const val CREATE_FILE_OP = "CREATE_FILE"
+        const val SEARCH_FILE = "SEARCH_FILE"
     }
 
     override fun onAttach(activity: Activity) {
@@ -70,6 +71,24 @@ class InputDialogFragment : DialogFragment() {
                         }
                         .create()
             }
+            SEARCH_FILE -> {
+                AlertDialog.Builder(activity!!)
+                        .setTitle("搜索文件")
+                        .setView(view)
+                        .setPositiveButton("确定") { dialogInterface: DialogInterface, i: Int ->
+                            callback?.let {
+                                val fileNameEditText = view.findViewById<EditText>(R.id.fileNameEditText)
+                                if (fileNameEditText.text != null && fileNameEditText.text.isNotEmpty()) {
+                                    it.onSearchFile(fileNameEditText.text.toString())
+                                }
+
+                            }
+                        }
+                        .setNegativeButton("取消") { dialogInterface: DialogInterface, i: Int ->
+
+                        }
+                        .create()
+            }
             else -> {
                 AlertDialog.Builder(activity!!)
                         .setTitle("请输入文件名(带上文件格式):")
@@ -106,5 +125,6 @@ class InputDialogFragment : DialogFragment() {
         fun onClickForRename(newName: String, oldName: String, path: String)
         fun onClickForCreateDir(path: String, dirName: String)
         fun onClickForCreateFile(path: String, fileName: String)
+        fun onSearchFile(fileNameText: String)
     }
 }

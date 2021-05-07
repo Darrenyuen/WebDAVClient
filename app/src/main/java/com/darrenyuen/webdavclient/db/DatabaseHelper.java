@@ -1,4 +1,4 @@
-package com.darrenyuen.webdavclient;
+package com.darrenyuen.webdavclient.db;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -18,7 +18,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         String createUserInfoTable = "create table UserInfo(account varchar(64), password varchar(64))";
-        String createHashData = "create table FileHashData(path varchar(64), fileName varchar(64))";
+        String createHashData = "create table FileHashData(path varchar(64), fileName varchar(64), isLock int)"; //isLock: 0 没被锁，1 被锁定
         db.execSQL(createUserInfoTable);
         db.execSQL(createHashData);
     }
